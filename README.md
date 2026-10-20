@@ -12,6 +12,8 @@ Sin paso de compilación y a coste 0:
 | `public/ventana.js` | Lógica pura: franja más barata (ventana deslizante), tramos barato/medio/caro |
 | `functions/api/precios.js` | Cloudflare Pages Function: `GET /api/precios?fecha=AAAA-MM-DD` |
 | `functions/api/historico.js` | `GET /api/historico?dias=30`: media, mínimo y máximo de cada día (para comparar) |
+| `functions/api/avisos.js` | `POST`/`DELETE /api/avisos`: alta y baja de las notificaciones push (Cloudflare KV `AVISOS`) |
+| `avisos/` | Worker con cron que cada tarde manda el push cuando salen los precios de mañana |
 | `lib/esios.js` | Lectura de Red Eléctrica y caché por día, compartida por las dos APIs |
 | `lib/horario.js` | Convierte cada fila de Red Eléctrica en su instante real (días de 23, 24 y 25 horas) |
 | `test/` | Tests con `node --test` (sin dependencias) |
@@ -49,6 +51,16 @@ npm test
    nada de `reloda.es`, `app.reloda.es` ni `trinidad.reloda.es` (Firebase).
 
 El despliegue se hace desde tu PC con wrangler: **no gasta minutos de GitHub Actions**.
+
+## Avisos (notificaciones push)
+
+- El navegador se suscribe con la clave pública VAPID (en `public/app.js` y `avisos/wrangler.toml`).
+- El Worker `luz-avisos` salta cada 10 min de 18:00 a 20:50 UTC; cuando mañana ya está publicado manda un
+  push vacío a cada suscripción (lotes de 40) y el service worker (`public/sw.js`) escribe el aviso.
+- Publicar el Worker: `npx wrangler deploy --config avisos/wrangler.toml`.
+- Secretos del Worker (no están en el repositorio): `VAPID_PRIVADA` (JWK) y `CLAVE_PRUEBA`.
+  Con esta última, `GET https://luz-avisos.dimelo-game.workers.dev/probar?clave=…` manda los avisos al momento.
+- En iPhone solo funciona con la web añadida a la pantalla de inicio (iOS 16.4 o posterior).
 
 ## Siguientes pasos
 

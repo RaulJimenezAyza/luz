@@ -76,6 +76,7 @@
             ¿Cuándo pongo la lavadora?
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
           </a>
+          <div class="avisos" id="avisos" aria-live="polite"></div>
         </div>
       </section>
 
@@ -153,12 +154,12 @@
     </main>
 
     <footer class="pie">
-      <p>
-        Precio del término de energía de la tarifa regulada PVPC 2.0TD (península, Baleares y Canarias). Solo te
-        afecta si tienes esta tarifa. Los consumos de los aparatos son aproximados.
+      <p class="pie-texto">
+        Son los precios de la <strong>tarifa regulada PVPC (2.0TD)</strong>, así que solo te afectan si la tienes
+        contratada. <span id="nota-impuestos"></span> Los consumos de los aparatos son aproximados. Los datos son
+        de <a href="https://www.esios.ree.es/" rel="noopener">Red Eléctrica</a>, que publica los de mañana hacia
+        las 20:15.
       </p>
-      <p id="nota-impuestos"></p>
-      <p>Datos de <a href="https://www.esios.ree.es/" rel="noopener">Red Eléctrica (ESIOS)</a>. Los precios de mañana se publican hacia las 20:15.</p>
       <div class="zonas" role="group" aria-label="Horas de">
         <span>Horas de</span>
         <button type="button" data-zona="peninsula">la península y Baleares</button>

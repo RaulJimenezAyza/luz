@@ -2,3 +2,8 @@
 name = "luz-reloda"
 pages_build_output_dir = "public"
 compatibility_date = "2026-10-01"
+
+# Suscripciones a los avisos (las escribe functions/api/avisos.js; las lee el Worker de avisos/).
+[[kv_namespaces]]
+binding = "AVISOS"
+id = "d7aed5e12a5347b4b8cd65f258694611"

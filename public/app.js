@@ -98,6 +98,7 @@ async function iniciar() {
   prepararZona();
   prepararSinConexion();
   prepararImpuestos();
+  pintarAvisos();
   const ahora = enMadrid();
   const largo = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   $('fecha-hoy').textContent = largo[0].toUpperCase() + largo.slice(1);
@@ -214,8 +215,100 @@ function prepararImpuestos() {
 function pintarNotaImpuestos() {
   const pct = (n) => numero(n * 100, n * 100 % 1 ? 2 : 0);
   $('nota-impuestos').textContent = estado.impuestos
-    ? `Precios con impuestos: impuesto eléctrico (${pct(IMPUESTO_ELECTRICO)} %) e ${estado.zona === 'canarias' ? 'IGIC' : 'IVA'} (${pct(IVA[estado.zona])} %). No incluyen la potencia contratada ni el alquiler del contador, que pagas igual a cualquier hora.`
-    : 'Precios sin impuestos, tal como los publica Red Eléctrica. Con impuestos (impuesto eléctrico e IVA) pagas en torno a un 27 % más.';
+    ? `Ya incluyen el impuesto eléctrico (${pct(IMPUESTO_ELECTRICO)} %) y el ${estado.zona === 'canarias' ? 'IGIC' : 'IVA'} (${pct(IVA[estado.zona])} %), pero no la potencia contratada ni el alquiler del contador, que pagas igual a cualquier hora.`
+    : 'Se muestran sin impuestos, tal como los publica Red Eléctrica: con ellos pagarías en torno a un 27 % más.';
+}
+
+// ---------- Avisos cada tarde ----------
+// Notificaciones push: el navegador se suscribe con la clave pública VAPID y la suscripción se guarda en
+// /api/avisos. Cada tarde el Worker de avisos/ despierta al service worker, que escribe la notificación.
+
+const VAPID_PUBLICA = 'BPHImHOiBgeKXZlj7rOG11y9hUUx2VyzVYvGEqZoFY56p-eDGTxwcfPVgXfZ-2OWwpXEHWm8Rp6oprGaIQJbra4';
+const esIos = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const instalada = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const hayPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
+/** La zona y los impuestos elegidos, para que el service worker escriba el aviso igual que la web. */
+async function guardarAjustesAvisos() {
+  try {
+    const cache = await caches.open('luz-ajustes');
+    await cache.put('/ajustes', new Response(JSON.stringify({ zona: ZONAS[estado.zona], factor: factorImpuestos() })));
+  } catch {}
+}
+
+async function suscripcionActual() {
+  if (!hayPush) return null;
+  const registro = await navigator.serviceWorker.getRegistration();
+  return registro ? registro.pushManager.getSubscription() : null;
+}
+
+async function pintarAvisos(mensaje = '') {
+  const caja = $('avisos');
+  if (!hayPush) {
+    caja.innerHTML = esIos && !instalada
+      ? `<p class="avisos-nota">${icono('campana')}<span>¿Quieres un aviso cada tarde con las horas baratas de mañana? En iPhone, primero añade la web a la pantalla de inicio (Compartir → Añadir a pantalla de inicio) y ábrela desde ahí.</span></p>`
+      : '';
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    caja.innerHTML = `<p class="avisos-nota">${icono('campanaNo')}<span>Tienes bloqueadas las notificaciones de esta web. Actívalas en los ajustes del navegador si quieres el aviso de cada tarde.</span></p>`;
+    return;
+  }
+  const activa = await suscripcionActual().catch(() => null);
+  caja.innerHTML = activa
+    ? `<p class="avisos-ok">${icono('campana')}<span>Avisos activados: cada tarde te decimos las horas baratas de mañana.</span>
+         <button type="button" class="enlace" id="avisos-quitar">Desactivar</button></p>`
+    : `<button type="button" class="boton" id="avisos-activar">${icono('campana')}<span>Avísame cada tarde</span></button>
+       <p class="avisos-texto">${mensaje || 'Te diremos las mejores horas de mañana en cuanto Red Eléctrica publique los precios, hacia las 20:30.'}</p>`;
+  $('avisos-activar')?.addEventListener('click', activarAvisos);
+  $('avisos-quitar')?.addEventListener('click', desactivarAvisos);
+}
+
+async function activarAvisos() {
+  const boton = $('avisos-activar');
+  boton.disabled = true;
+  boton.querySelector('span').textContent = 'Activando…';
+  try {
+    if ((await Notification.requestPermission()) !== 'granted') return pintarAvisos();
+    const registro = await navigator.serviceWorker.ready;
+    const suscripcion = await registro.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: deBase64url(VAPID_PUBLICA) });
+    const r = await fetch('/api/avisos', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ suscripcion, zona: estado.zona }),
+    });
+    if (!r.ok) {
+      await suscripcion.unsubscribe();
+      throw new Error();
+    }
+    await guardarAjustesAvisos();
+    registro.showNotification('Avisos activados', {
+      body: 'Cada tarde, cuando salgan los precios de mañana, te diremos las mejores horas.',
+      icon: '/icono-192.png',
+      tag: 'luz-alta',
+    });
+    pintarAvisos();
+  } catch {
+    pintarAvisos('No se han podido activar los avisos. Vuelve a intentarlo en un momento.');
+  }
+}
+
+async function desactivarAvisos() {
+  const suscripcion = await suscripcionActual().catch(() => null);
+  if (suscripcion) {
+    await fetch('/api/avisos', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ endpoint: suscripcion.endpoint }),
+    }).catch(() => {});
+    await suscripcion.unsubscribe().catch(() => {});
+  }
+  pintarAvisos();
+}
+
+function deBase64url(texto) {
+  const b64 = texto.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (texto.length % 4)) % 4);
+  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 }
 
 // ---------- Sin conexión ----------
@@ -253,6 +346,7 @@ function prepararPestanas() {
 
 function pintarTodo() {
   pintarNotaImpuestos();
+  guardarAjustesAvisos();
   pintarEtiqueta();
   pintarVeredicto();
   pintarDia();

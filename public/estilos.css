@@ -175,6 +175,20 @@ body { transition: background-color 0.25s, color 0.25s; }
 .accion svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s var(--suave); }
 .accion:hover svg { transform: translateY(3px); }
 
+.avisos { margin-top: 28px; max-width: 420px; }
+.avisos:empty { display: none; }
+.avisos-texto { margin-top: 10px; font-size: 0.875rem; color: var(--tinta-3); }
+.avisos-nota, .avisos-ok { display: flex; align-items: flex-start; gap: 10px; font-size: 0.9375rem; color: var(--tinta-2); }
+.avisos-ok { flex-wrap: wrap; align-items: center; color: var(--tinta); font-weight: 600; }
+.avisos-nota .icono, .avisos-ok .icono { width: 20px; height: 20px; flex: none; margin-top: 1px; }
+.avisos-ok .icono { color: var(--A); }
+.enlace {
+  border: 0; background: none; padding: 0; min-height: 32px; color: var(--tinta-2); font-weight: 500; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 0.2em;
+}
+.enlace:hover { color: var(--tinta); }
+.boton:disabled { opacity: 0.6; cursor: progress; }
+
 /* Letra suelta (chip) */
 .letra {
   display: inline-grid; place-items: center; min-width: 1.6em; height: 1.6em; padding: 0 0.3em; border-radius: 0.3em;
@@ -357,9 +371,15 @@ input[type='range'] { width: 100%; accent-color: var(--tinta); min-height: 28px;
 .interruptor-compacto { min-height: 40px; font-size: 0.875rem; font-weight: 600; color: var(--tinta); white-space: nowrap; }
 
 /* ---------- Pie ---------- */
-.pie { max-width: 1120px; margin: 0 auto; padding: 28px 20px 48px; border-top: 1px solid var(--linea); color: var(--tinta-3); font-size: 0.875rem; display: grid; gap: 6px; }
-.pie p { max-width: 90ch; }
-.zonas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+.pie {
+  max-width: 1120px; margin: 0 auto; padding: 32px 20px 56px; border-top: 1px solid var(--linea);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 48px; align-items: start;
+}
+.pie-texto { max-width: 68ch; color: var(--tinta-2); font-size: 0.9375rem; line-height: 1.6; text-wrap: pretty; }
+.pie-texto strong { color: var(--tinta); font-weight: 600; }
+.pie a { color: var(--tinta); }
+@media (max-width: 900px) { .pie { grid-template-columns: 1fr; } }
+.zonas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--tinta-3); font-size: 0.875rem; }
 .zonas span { margin-right: 4px; }
 .zonas button {
   min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--linea); background: transparent;

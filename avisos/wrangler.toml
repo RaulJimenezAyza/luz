@@ -1,0 +1,16 @@
+# Worker que manda los avisos de cada tarde (ver src/index.js). Se publica aparte de la web:
+#   npx wrangler deploy --config avisos/wrangler.toml
+# Secretos (no están en el repositorio): VAPID_PRIVADA (JWK) y CLAVE_PRUEBA.
+name = "luz-avisos"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[triggers]
+crons = ["*/10 18-20 * * *"]
+
+[vars]
+VAPID_PUBLICA = "BPHImHOiBgeKXZlj7rOG11y9hUUx2VyzVYvGEqZoFY56p-eDGTxwcfPVgXfZ-2OWwpXEHWm8Rp6oprGaIQJbra4"
+
+[[kv_namespaces]]
+binding = "AVISOS"
+id = "d7aed5e12a5347b4b8cd65f258694611"

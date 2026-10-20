@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Luz barata · El precio de la luz, hora a hora</title>
+    <meta name="description" content="La etiqueta energética de cada hora del día: cuándo la luz está barata y a qué hora poner la lavadora, el lavavajillas o cargar el coche." />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Antes de pintar, para que no parpadee: el tema elegido a mano gana al del sistema.
+      try { const t = localStorage.getItem('tema'); if (t) document.documentElement.dataset.theme = t; } catch {}
+    </script>
+    <link rel="icon" href="icono.svg" type="image/svg+xml" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="preload" href="fuentes/archivo.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="estilos.css" />
+    <script type="module" src="app.js"></script>
+  </head>
+  <body>
+    <header class="cabecera">
+      <a class="marca" href="/">
+        <svg class="marca-logo" viewBox="0 0 28 24" aria-hidden="true">
+          <path d="M0 1h12l4 3.5-4 3.5H0z" fill="#009640" />
+          <path d="M0 8.5h17l4 3.5-4 3.5H0z" fill="#ffed00" />
+          <path d="M0 16h22l4 3.5-4 3.5H0z" fill="#e2001a" />
+        </svg>
+        Luz barata
+      </a>
+      <div class="cabecera-der">
+        <p class="cabecera-fecha" id="fecha-hoy"></p>
+        <button class="boton-tema" id="boton-tema" type="button"></button>
+      </div>
+    </header>
+
+    <main>
+      <section class="primera" aria-labelledby="titular">
+        <figure class="etiqueta">
+          <div class="etiqueta-cab">
+            <span class="etiqueta-titulo">Luz</span>
+            <span class="etiqueta-dia" id="etiqueta-dia">Hoy</span>
+          </div>
+          <ol class="escala" id="escala" aria-label="Horas de hoy por letra, de la más barata (A) a la más cara (G)"></ol>
+          <figcaption class="etiqueta-pie">
+            Cada hora lleva una letra según su precio: A es la más barata del día y G, la más cara.
+          </figcaption>
+        </figure>
+
+        <div class="veredicto">
+          <h1 class="titular" id="titular">Cargando los precios de hoy…</h1>
+          <p class="veredicto-texto" id="veredicto-texto"></p>
+          <div class="proxima" id="proxima"></div>
+          <a class="accion" href="#aparatos">
+            ¿Cuándo pongo la lavadora?
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" /></svg>
+          </a>
+        </div>
+      </section>
+
+      <section class="dia" aria-labelledby="titulo-dia">
+        <div class="seccion-cab">
+          <div>
+            <h2 id="titulo-dia">El día, hora a hora</h2>
+            <p class="seccion-sub" id="sub-dia"></p>
+          </div>
+          <div class="pestanas" role="tablist" aria-label="Día">
+            <button role="tab" data-dia="hoy" aria-selected="true">Hoy</button>
+            <button role="tab" data-dia="manana" aria-selected="false">Mañana</button>
+          </div>
+        </div>
+
+        <div class="grafico" id="grafico">
+          <div class="tooltip" id="tooltip" role="status" hidden></div>
+        </div>
+
+        <details class="tabla-precios">
+          <summary>Ver todos los precios en una tabla</summary>
+          <div id="tabla"></div>
+        </details>
+      </section>
+
+      <section class="aparatos" id="aparatos" aria-labelledby="titulo-aparatos">
+        <div class="seccion-cab">
+          <div>
+            <h2 id="titulo-aparatos">¿Cuándo pongo cada cosa?</h2>
+            <p class="seccion-sub">La franja más barata desde ahora. Si ya están los precios de mañana, también cuenta mañana.</p>
+          </div>
+        </div>
+        <div class="lista" id="lista-aparatos" role="list"></div>
+
+        <div class="calculadora">
+          <h3>¿Otro aparato?</h3>
+          <label class="control">
+            <span>Tarda <output id="calc-horas-v"></output></span>
+            <input id="calc-horas" type="range" min="1" max="10" step="1" value="3" />
+          </label>
+          <label class="control">
+            <span>Gasta <output id="calc-kwh-v"></output></span>
+            <input id="calc-kwh" type="range" min="0.5" max="20" step="0.5" value="2" />
+          </label>
+          <p class="calc-resultado" id="calc-resultado" aria-live="polite"></p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="pie">
+      <p>
+        Precio del término de energía de la tarifa regulada PVPC 2.0TD (península, Baleares y Canarias), sin IVA ni
+        impuesto eléctrico. Solo te afecta si tienes esta tarifa. Los consumos de los aparatos son aproximados.
+      </p>
+      <p>Datos de <a href="https://www.esios.ree.es/" rel="noopener">Red Eléctrica (ESIOS)</a>. Los precios de mañana se publican hacia las 20:15.</p>
+      <div class="zonas" role="group" aria-label="Horas de">
+        <span>Horas de</span>
+        <button type="button" data-zona="peninsula">la península y Baleares</button>
+        <button type="button" data-zona="canarias">Canarias</button>
+      </div>
+    </footer>
+  </body>
+</html>

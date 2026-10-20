@@ -1,0 +1,11 @@
+{
+  "name": "Luz barata",
+  "short_name": "Luz",
+  "description": "Precio de la luz (PVPC) hora a hora y la mejor hora para cada aparato.",
+  "lang": "es",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [{ "src": "icono.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

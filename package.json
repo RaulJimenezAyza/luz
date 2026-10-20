@@ -1,0 +1,16 @@
+{
+  "name": "luz",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler pages dev",
+    "test": "node --test",
+    "deploy": "wrangler pages deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  },
+  "allowScripts": {
+    "workerd@1.20261019.1": true
+  }
+}

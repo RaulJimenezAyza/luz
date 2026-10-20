@@ -226,13 +226,17 @@ const VERSION_API = 3;
 
 // ---------- Con o sin impuestos ----------
 function prepararImpuestos() {
-  const casilla = $('con-impuestos');
-  casilla.checked = estado.impuestos;
-  casilla.addEventListener('change', () => {
-    estado.impuestos = casilla.checked;
-    guardar('impuestos', estado.impuestos);
-    if (estado.hoy?.disponible) pintarTodo();
-  });
+  const botones = document.querySelectorAll('.impuestos button');
+  const marcar = () => botones.forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.impuestos === 'si') === estado.impuestos)));
+  botones.forEach((b) =>
+    b.addEventListener('click', () => {
+      estado.impuestos = b.dataset.impuestos === 'si';
+      guardar('impuestos', estado.impuestos);
+      marcar();
+      if (estado.hoy?.disponible) pintarTodo();
+    })
+  );
+  marcar();
 }
 
 function pintarNotaImpuestos() {
@@ -447,7 +451,7 @@ function pintarVeredicto() {
     ? 'justo la media de hoy'
     : `un ${numero(Math.abs(dif) * 100, 0)} % ${dif > 0 ? 'más' : 'menos'} que la media de hoy`;
   $('veredicto-texto').innerHTML =
-    `Entre las ${horaIni(actual)} y las ${horaFin(actual)}, el kWh cuesta <strong>${cts(actual.precio)} céntimos</strong>: ${comparacion}.`;
+    `Entre las ${horaIni(actual)} y las ${horaFin(actual)}, el kWh cuesta <strong>${cts(actual.precio)} céntimos</strong> ${estado.impuestos ? 'con' : 'sin'} impuestos: ${comparacion}.`;
 
   let html;
   if (actual.tramo === 'barato') {

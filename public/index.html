@@ -43,10 +43,6 @@
       </a>
       <div class="cabecera-der">
         <p class="cabecera-fecha" id="fecha-hoy"></p>
-        <label class="interruptor interruptor-compacto">
-          <input id="con-impuestos" type="checkbox" checked />
-          <span>Con impuestos</span>
-        </label>
         <button class="boton-tema" id="boton-tema" type="button"></button>
       </div>
     </header>
@@ -190,11 +186,18 @@
         de <a href="https://www.esios.ree.es/" rel="noopener">Red Eléctrica</a>, que publica los de mañana hacia
         las 20:15. <a href="/privacidad">Privacidad</a>: sin cuentas ni cookies.
       </p>
-      <div class="zonas" role="group" aria-label="Precios y horas de">
-        <span>Precios y horas de</span>
-        <button type="button" data-zona="peninsula">la península y Baleares</button>
-        <button type="button" data-zona="canarias">Canarias</button>
-        <button type="button" data-zona="ceutamelilla">Ceuta y Melilla</button>
+      <div class="ajustes-pie">
+        <div class="opciones zonas" role="group" aria-labelledby="etiqueta-zona">
+          <span id="etiqueta-zona">Precios y horas de</span>
+          <button type="button" data-zona="peninsula">la península y Baleares</button>
+          <button type="button" data-zona="canarias">Canarias</button>
+          <button type="button" data-zona="ceutamelilla">Ceuta y Melilla</button>
+        </div>
+        <div class="opciones impuestos" role="group" aria-labelledby="etiqueta-impuestos">
+          <span id="etiqueta-impuestos">Precios</span>
+          <button type="button" data-impuestos="si">con impuestos</button>
+          <button type="button" data-impuestos="no">sin impuestos</button>
+        </div>
       </div>
     </footer>
   </body>

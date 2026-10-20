@@ -3,8 +3,8 @@
 // Todo va "primero la red": con conexión siempre se ve lo más nuevo (y se guarda una copia); sin
 // conexión se sirve esa copia. Sube VERSION al cambiar la lista de archivos base.
 
-const VERSION = 'luz-v2';
-const BASE = ['/', '/estilos.css', '/app.js', '/ventana.js', '/iconos.js', '/fuentes/archivo.woff2', '/icono.svg', '/manifest.webmanifest'];
+const VERSION = 'luz-v3';
+const BASE = ['/', '/estilos.css', '/app.js', '/ventana.js', '/iconos.js', '/consumo.js', '/fuentes/archivo.woff2', '/icono.svg', '/manifest.webmanifest'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(BASE)).then(() => self.skipWaiting()));
@@ -62,7 +62,7 @@ async function avisarManana() {
   let titulo = 'Ya están los precios de mañana';
   let cuerpo = 'Abre Luz barata para ver las mejores horas.';
   try {
-    const r = await fetch(`/api/precios?fecha=${mananaEnMadrid()}&v=2`);
+    const r = await fetch(`/api/precios?fecha=${mananaEnMadrid()}&v=3`);
     const dia = await r.json();
     if (dia.disponible) ({ titulo, cuerpo } = resumen(dia.horas, ajustes));
   } catch {
@@ -78,7 +78,8 @@ async function avisarManana() {
 }
 
 /** "Mañana, lo más barato de 14 a 16 h" y las horas más barata y más cara. */
-function resumen(horas, { zona, factor }) {
+function resumen(horasApi, { zona, factor, campo }) {
+  const horas = horasApi.map((h) => ({ ...h, precio: h[campo] ?? h.precio }));
   const hora = (ms) => Number(new Intl.DateTimeFormat('es-ES', { timeZone: zona, hour: '2-digit', hourCycle: 'h23' }).format(new Date(ms)));
   const cts = (p) => (p * 100 * factor).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -99,9 +100,9 @@ function resumen(horas, { zona, factor }) {
 async function leerAjustes() {
   try {
     const guardados = await (await caches.open(AJUSTES)).match('/ajustes');
-    if (guardados) return { zona: 'Europe/Madrid', factor: 1, ...(await guardados.json()) };
+    if (guardados) return { zona: 'Europe/Madrid', factor: 1, campo: 'precio', ...(await guardados.json()) };
   } catch {}
-  return { zona: 'Europe/Madrid', factor: 1 };
+  return { zona: 'Europe/Madrid', factor: 1, campo: 'precio' };
 }
 
 function mananaEnMadrid() {

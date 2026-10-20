@@ -370,6 +370,51 @@ input[type='range'] { width: 100%; accent-color: var(--tinta); min-height: 28px;
 
 .interruptor-compacto { min-height: 40px; font-size: 0.875rem; font-weight: 600; color: var(--tinta); white-space: nowrap; }
 
+/* ---------- Tu consumo real ---------- */
+.consumo { padding: 48px 0 56px; border-top: 1px solid var(--linea); }
+.subida {
+  position: relative; display: grid; justify-items: center; gap: 6px; padding: 36px 20px; text-align: center;
+  border: 2px dashed var(--linea); border-radius: 16px; cursor: pointer; transition: border-color 0.15s, background-color 0.15s;
+}
+.subida[hidden] { display: none; }
+.subida:hover, .subida.encima { border-color: var(--tinta); background: var(--fondo-2); }
+.subida:focus-within { outline: 2px solid var(--tinta); outline-offset: 3px; }
+.subida input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.subida-icono svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+.subida-titulo { font-weight: 700; font-size: 1.0625rem; }
+.subida-texto { font-size: 0.875rem; color: var(--tinta-3); }
+.como ol { margin: 12px 0 0; padding-left: 1.25em; display: grid; gap: 6px; color: var(--tinta-2); }
+.como p { margin-top: 10px; color: var(--tinta-2); font-size: 0.9375rem; }
+.consumo-resultado { margin-top: 28px; }
+.consumo-resultado[hidden] { display: none; }
+.consumo-estado { color: var(--tinta-2); }
+.consumo-error { color: var(--G); font-weight: 600; }
+.consumo-resumen { font-size: 1.1875rem; line-height: 1.5; color: var(--tinta-2); max-width: 70ch; }
+.consumo-resumen strong { color: var(--tinta); }
+.consumo-nota { display: block; margin-top: 6px; font-size: 0.875rem; color: var(--tinta-3); }
+.consumo-bloques { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 40px; margin-top: 28px; border-top: 2px solid var(--linea-fuerte); }
+.consumo-bloque { padding-top: 18px; }
+.consumo-bloque h3 { font-size: 1rem; font-weight: 700; }
+.consumo-bloque p { margin-top: 8px; color: var(--tinta-2); line-height: 1.55; }
+.consumo-bloque strong { color: var(--tinta); }
+.reparto { display: flex; gap: 2px; height: 14px; margin-top: 14px; border-radius: 4px; overflow: hidden; }
+.reparto-leyenda { display: grid; gap: 4px; margin-top: 10px !important; font-size: 0.875rem; }
+.reparto-leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 8px; }
+.consumo-subtitulo { margin-top: 40px; font-size: 1.125rem; font-weight: 700; }
+.grafico-consumo { margin-top: 16px; min-height: 200px; }
+#consumo-otro { margin-top: 16px; }
+@media (max-width: 900px) { .consumo-bloques { grid-template-columns: 1fr; gap: 0; } }
+
+/* ---------- Páginas de lectura (privacidad) ---------- */
+.lectura { max-width: 68ch; padding-top: 48px; padding-bottom: 80px; }
+.lectura h1 { font-weight: 800; font-size: clamp(2.25rem, 5vw, 3.25rem); letter-spacing: -0.035em; line-height: 1.05; }
+.lectura h2 { margin-top: 40px; font-size: 1.25rem; }
+.lectura p { margin-top: 12px; font-size: 1.0625rem; line-height: 1.65; color: var(--tinta-2); text-wrap: pretty; }
+.lectura p strong { color: var(--tinta); }
+.lectura .lectura-entrada { margin-top: 20px; font-size: 1.25rem; line-height: 1.5; color: var(--tinta); }
+.lectura .lectura-fecha { margin-top: 48px; font-size: 0.875rem; color: var(--tinta-3); }
+.cabecera > .boton { text-decoration: none; }
+
 /* ---------- Pie ---------- */
 .pie {
   max-width: 1120px; margin: 0 auto; padding: 32px 20px 56px; border-top: 1px solid var(--linea);

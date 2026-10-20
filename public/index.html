@@ -151,19 +151,50 @@
         </div>
         <p class="leyenda-historico" id="leyenda-historico"></p>
       </section>
+
+      <section class="consumo" id="consumo" aria-labelledby="titulo-consumo">
+        <div class="seccion-cab">
+          <div>
+            <h2 id="titulo-consumo">Tu consumo real</h2>
+            <p class="seccion-sub">
+              Sube tu archivo de consumo por horas de Datadis o de tu distribuidora y te digo cuánto pagaste de energía, a
+              qué horas consumes y cuánto podrías ahorrar. El archivo se analiza en tu navegador: no se envía a ningún sitio.
+            </p>
+          </div>
+        </div>
+        <label class="subida" id="subida">
+          <input type="file" id="archivo-consumo" accept=".csv,text/csv" />
+          <span class="subida-icono" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 15V3M7 8l5-5 5 5M5 21h14" /></svg>
+          </span>
+          <span class="subida-titulo">Elige o arrastra aquí tu archivo CSV</span>
+          <span class="subida-texto">Consumo por horas, hasta los últimos 3 meses</span>
+        </label>
+        <details class="tabla-precios como">
+          <summary>¿Dónde lo descargo?</summary>
+          <ol>
+            <li>Entra en <a href="https://datadis.es/" rel="noopener">datadis.es</a> con tu DNI y tu contraseña (es gratis; si no tienes cuenta, puedes darte de alta allí mismo).</li>
+            <li>Busca tu suministro y abre su consumo.</li>
+            <li>Elige las fechas, descárgalo en CSV y súbelo aquí.</li>
+          </ol>
+          <p>También vale el CSV de consumo horario del área de clientes de tu distribuidora (i-DE, e-distribución, UFD…).</p>
+        </details>
+        <div class="consumo-resultado" id="consumo-resultado" aria-live="polite" hidden></div>
+      </section>
     </main>
 
     <footer class="pie">
       <p class="pie-texto">
-        Son los precios de la <strong>tarifa regulada PVPC (2.0TD)</strong>, así que solo te afectan si la tienes
-        contratada. <span id="nota-impuestos"></span> Los consumos de los aparatos son aproximados. Los datos son
+        Son los precios de la <strong>tarifa regulada PVPC (2.0TD)</strong> de tu zona, así que solo te afectan si la
+        tienes contratada. <span id="nota-impuestos"></span> Los consumos de los aparatos son aproximados. Los datos son
         de <a href="https://www.esios.ree.es/" rel="noopener">Red Eléctrica</a>, que publica los de mañana hacia
-        las 20:15.
+        las 20:15. <a href="/privacidad">Privacidad</a>: sin cuentas ni cookies.
       </p>
-      <div class="zonas" role="group" aria-label="Horas de">
-        <span>Horas de</span>
+      <div class="zonas" role="group" aria-label="Precios y horas de">
+        <span>Precios y horas de</span>
         <button type="button" data-zona="peninsula">la península y Baleares</button>
         <button type="button" data-zona="canarias">Canarias</button>
+        <button type="button" data-zona="ceutamelilla">Ceuta y Melilla</button>
       </div>
     </footer>
   </body>

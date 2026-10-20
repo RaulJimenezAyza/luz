@@ -1,5 +1,6 @@
 import { LETRAS, dentroDeHorario, franjaMasBarata, letras, mediaDesde, periodos, tramoDeLetra } from './ventana.js';
 import { icono } from './iconos.js';
+import { analizar, leerCsv } from './consumo.js';
 
 // Aparatos de serie. Consumos aproximados por uso: solo sirven para dar el coste y el ahorro en euros.
 // `despierto`: solo se puede poner cuando estás despierto (hay que estar para ponerlo o recogerlo).
@@ -15,20 +16,40 @@ const HORARIO_DE_SERIE = { desde: 8, hasta: 23 };
 
 // Impuestos por kWh para pasar del precio de Red Eléctrica a lo que se paga. Vigentes desde el
 // 1 de junio de 2026: impuesto eléctrico 5,11269632 % y luego IVA 21 % (en Canarias, IGIC 0 % para
-// la luz de casa). Revisar si el Gobierno vuelve a rebajarlos. No incluye la potencia contratada ni
-// el alquiler del contador, que no dependen de la hora.
+// la luz de casa; en Ceuta y Melilla, IPSI 1 %). Revisar si el Gobierno vuelve a rebajarlos. No
+// incluye la potencia contratada ni el alquiler del contador, que no dependen de la hora.
 const IMPUESTO_ELECTRICO = 0.0511269632;
-const IVA = { peninsula: 0.21, canarias: 0 };
+const IVA = { peninsula: 0.21, canarias: 0, ceutamelilla: 0.01 };
+const NOMBRE_IVA = { peninsula: 'IVA', canarias: 'IGIC', ceutamelilla: 'IPSI' };
 const ICONOS_APARATO = new Set(['lavadora', 'lavavajillas', 'secadora', 'horno', 'termo', 'coche', 'enchufe']);
 
 const OSCURAS = new Set(['C', 'D', 'E']); // letras sobre amarillo: texto oscuro
-// Las horas se pintan en la hora de la península o de Canarias (una menos); el precio es el mismo.
-const ZONAS = { peninsula: 'Europe/Madrid', canarias: 'Atlantic/Canary' };
+// Las horas se pintan en la hora de cada zona (Canarias, una menos). Ceuta y Melilla tienen la hora de
+// la península, pero su propio precio (precioCym) y su propio impuesto (IPSI).
+const ZONAS = { peninsula: 'Europe/Madrid', canarias: 'Atlantic/Canary', ceutamelilla: 'Africa/Ceuta' };
 const estado = {
   hoy: null, manana: null, diaVisible: 'hoy', zona: zonaInicial(),
   aparatos: leerAparatos(), horario: leerHorario(), editando: false,
-  impuestos: leer('impuestos') ?? true, historico: null,
+  impuestos: leer('impuestos') ?? true, historico: null, consumo: null,
 };
+/**
+ * Pone en `precio` el de la zona elegida: el de la API (península, Baleares y Canarias) o el de Ceuta y
+ * Melilla. El original se guarda la primera vez en `precioPcb` (y en el histórico, en `pcb`).
+ */
+function aplicarZona() {
+  const cym = estado.zona === 'ceutamelilla';
+  for (const dia of [estado.hoy, estado.manana]) {
+    if (!dia?.disponible) continue;
+    for (const h of dia.horas) {
+      h.precioPcb ??= h.precio;
+      h.precio = cym ? h.precioCym : h.precioPcb;
+    }
+  }
+  for (const d of estado.historico ?? []) {
+    d.pcb ??= { media: d.media, min: d.min, max: d.max };
+    Object.assign(d, cym && d.cym ? d.cym : d.pcb);
+  }
+}
 const factorImpuestos = () => (estado.impuestos ? (1 + IMPUESTO_ELECTRICO) * (1 + IVA[estado.zona]) : 1);
 const formatos = {};
 const formatoHora = (zona) =>
@@ -39,7 +60,8 @@ function zonaInicial() {
     const guardada = localStorage.getItem('zona');
     if (guardada in ZONAS) return guardada;
   } catch {}
-  return Intl.DateTimeFormat().resolvedOptions().timeZone === 'Atlantic/Canary' ? 'canarias' : 'peninsula';
+  const zona = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return zona === 'Atlantic/Canary' ? 'canarias' : zona === 'Africa/Ceuta' ? 'ceutamelilla' : 'peninsula';
 }
 const $ = (id) => document.getElementById(id);
 
@@ -99,6 +121,7 @@ async function iniciar() {
   prepararSinConexion();
   prepararImpuestos();
   pintarAvisos();
+  prepararConsumo();
   const ahora = enMadrid();
   const largo = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   $('fecha-hoy').textContent = largo[0].toUpperCase() + largo.slice(1);
@@ -199,7 +222,7 @@ function prepararZona() {
 
 // Sube VERSION_API cada vez que cambie el formato de /api/precios: las respuestas se guardan 24 h en la
 // caché del navegador y una antigua con otro formato dejaría la página colgada.
-const VERSION_API = 2;
+const VERSION_API = 3;
 
 // ---------- Con o sin impuestos ----------
 function prepararImpuestos() {
@@ -215,7 +238,7 @@ function prepararImpuestos() {
 function pintarNotaImpuestos() {
   const pct = (n) => numero(n * 100, n * 100 % 1 ? 2 : 0);
   $('nota-impuestos').textContent = estado.impuestos
-    ? `Ya incluyen el impuesto eléctrico (${pct(IMPUESTO_ELECTRICO)} %) y el ${estado.zona === 'canarias' ? 'IGIC' : 'IVA'} (${pct(IVA[estado.zona])} %), pero no la potencia contratada ni el alquiler del contador, que pagas igual a cualquier hora.`
+    ? `Ya incluyen el impuesto eléctrico (${pct(IMPUESTO_ELECTRICO)} %) y el ${NOMBRE_IVA[estado.zona]} (${pct(IVA[estado.zona])} %), pero no la potencia contratada ni el alquiler del contador, que pagas igual a cualquier hora.`
     : 'Se muestran sin impuestos, tal como los publica Red Eléctrica: con ellos pagarías en torno a un 27 % más.';
 }
 
@@ -232,7 +255,8 @@ const hayPush = 'serviceWorker' in navigator && 'PushManager' in window && 'Noti
 async function guardarAjustesAvisos() {
   try {
     const cache = await caches.open('luz-ajustes');
-    await cache.put('/ajustes', new Response(JSON.stringify({ zona: ZONAS[estado.zona], factor: factorImpuestos() })));
+    const campo = estado.zona === 'ceutamelilla' ? 'precioCym' : 'precio';
+    await cache.put('/ajustes', new Response(JSON.stringify({ zona: ZONAS[estado.zona], factor: factorImpuestos(), campo })));
   } catch {}
 }
 
@@ -324,7 +348,7 @@ async function cargar(fecha) {
   try {
     const r = await fetch(`/api/precios?fecha=${fecha}&v=${VERSION_API}`);
     const datos = await r.json();
-    if (datos?.disponible && !datos.horas.every((h) => Number.isFinite(h.inicio) && Number.isFinite(h.fin))) return null;
+    if (datos?.disponible && !datos.horas.every((h) => Number.isFinite(h.inicio) && Number.isFinite(h.fin) && Number.isFinite(h.precioCym))) return null;
     return datos;
   } catch {
     return null;
@@ -345,6 +369,7 @@ function prepararPestanas() {
 }
 
 function pintarTodo() {
+  aplicarZona();
   pintarNotaImpuestos();
   guardarAjustesAvisos();
   pintarEtiqueta();
@@ -353,6 +378,7 @@ function pintarTodo() {
   pintarAparatos();
   pintarCalculadora();
   if (estado.historico) pintarComparacion();
+  pintarConsumo();
 }
 
 // ---------- Datos derivados ----------
@@ -758,6 +784,7 @@ async function cargarHistorico() {
     const r = await fetch('/api/historico?dias=30');
     const datos = await r.json();
     estado.historico = Array.isArray(datos?.dias) && datos.dias.length ? datos.dias : null;
+    aplicarZona();
   } catch {
     estado.historico = null;
   }
@@ -883,6 +910,200 @@ function pintarGraficoHistorico(dias, iHoy) {
     tooltip.replaceChildren(datos);
     tooltip.style.left = `${Math.min(W - 120, Math.max(120, centro(i)))}px`;
     tooltip.style.top = `${y(valores[i]) - (i === iHoy ? 24 : 0)}px`;
+    tooltip.hidden = false;
+  };
+  const ocultar = () => {
+    tooltip.hidden = true;
+    cont.querySelectorAll('.barra.activa').forEach((b) => b.classList.remove('activa'));
+  };
+  cont.querySelectorAll('.zona').forEach((z) => {
+    const i = Number(z.dataset.i);
+    z.addEventListener('pointerenter', () => mostrar(i));
+    z.addEventListener('focus', () => mostrar(i));
+    z.addEventListener('pointerleave', ocultar);
+    z.addEventListener('blur', ocultar);
+  });
+}
+
+// ---------- Tu consumo real ----------
+// El CSV se lee aquí, en el navegador: solo se piden a /api/precios los precios de los días que trae.
+
+const MAX_DIAS_CONSUMO = 92;
+
+function prepararConsumo() {
+  const entrada = $('archivo-consumo');
+  const zona = $('subida');
+  entrada.addEventListener('change', () => entrada.files[0] && leerArchivoConsumo(entrada.files[0]));
+  zona.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zona.classList.add('encima');
+  });
+  zona.addEventListener('dragleave', () => zona.classList.remove('encima'));
+  zona.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zona.classList.remove('encima');
+    const archivo = e.dataTransfer.files[0];
+    if (archivo) leerArchivoConsumo(archivo);
+  });
+}
+
+async function leerArchivoConsumo(archivo) {
+  const salida = $('consumo-resultado');
+  salida.hidden = false;
+  salida.innerHTML = '<p class="consumo-estado">Leyendo el archivo…</p>';
+  try {
+    if (archivo.size > 20 * 1024 * 1024) throw new Error('El archivo es demasiado grande.');
+    let filas = leerCsv(await archivo.text());
+    const fechas = [...new Set(filas.map((f) => f.fecha))].sort();
+    const usadas = fechas.slice(-MAX_DIAS_CONSUMO);
+    filas = filas.filter((f) => f.fecha >= usadas[0]);
+
+    salida.innerHTML = `<p class="consumo-estado">Cruzando tu consumo con los precios de ${usadas.length} ${usadas.length === 1 ? 'día' : 'días'}…</p>`;
+    const dias = {};
+    for (let i = 0; i < usadas.length; i += 6) {
+      await Promise.all(usadas.slice(i, i + 6).map(async (f) => {
+        const d = await cargar(f);
+        if (d?.disponible) dias[f] = d.horas;
+      }));
+    }
+    if (!Object.keys(dias).length) throw new Error('No he podido conseguir los precios de esos días. Prueba en un rato.');
+    estado.consumo = { filas, dias, recortado: fechas.length > usadas.length, nombre: archivo.name };
+    $('subida').hidden = true;
+    pintarConsumo();
+    $('consumo').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  } catch (e) {
+    salida.innerHTML = `<p class="consumo-error">${esc(e.message || 'No he podido leer el archivo.')}</p>`;
+  }
+  $('archivo-consumo').value = '';
+}
+
+function pintarConsumo() {
+  if (!estado.consumo) return;
+  const { filas, dias, recortado } = estado.consumo;
+  const campo = estado.zona === 'ceutamelilla' ? 'precioCym' : 'precioPcb';
+  const precios = Object.fromEntries(Object.entries(dias).map(([f, horas]) => [f, horas.map((h) => h[campo] ?? h.precio)]));
+  const r = analizar(filas, precios, factorImpuestos());
+  const salida = $('consumo-resultado');
+  if (!r) {
+    salida.innerHTML = '<p class="consumo-error">Las fechas del archivo no coinciden con días con precios publicados.</p>';
+    return;
+  }
+
+  const fecha = (f) => new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${f}T12:00:00Z`));
+  const kwh = (n) => `${numero(n, n < 10 ? 1 : 0)} kWh`;
+  const dif = (r.precioPagado - r.precioMedio) / r.precioMedio;
+  const veredicto = Math.abs(dif) < 0.02
+    ? 'justo la media de esos días: repartes el consumo sin fijarte en la hora.'
+    : dif > 0
+      ? `un ${numero(dif * 100, 0)} % más que la media de esos días (${cts(r.precioMedio / factorImpuestos())} cts): gastas más de lo normal en horas caras.`
+      : `un ${numero(-dif * 100, 0)} % menos que la media de esos días (${cts(r.precioMedio / factorImpuestos())} cts): ya consumes bastante en horas baratas.`;
+  const pct = (n) => `${numero(n * 100, 0)} %`;
+
+  salida.innerHTML = `
+    <p class="consumo-resumen">
+      Del ${fecha(r.desde)} al ${fecha(r.hasta)} (${r.dias} ${r.dias === 1 ? 'día' : 'días'}) consumiste <strong>${kwh(r.kwh)}</strong>,
+      y su energía te costó <strong>${euros(r.coste)}</strong>${estado.impuestos ? ' con impuestos' : ' sin impuestos'}.
+      ${recortado ? `<span class="consumo-nota">Solo he usado los últimos ${MAX_DIAS_CONSUMO} días del archivo.</span>` : ''}
+    </p>
+    <div class="consumo-bloques">
+      <div class="consumo-bloque">
+        <h3>A qué precio consumes</h3>
+        <p>Pagaste de media <strong>${cts(r.precioPagado / factorImpuestos())} cts/kWh</strong>, ${veredicto}</p>
+      </div>
+      <div class="consumo-bloque">
+        <h3>En qué horas consumes</h3>
+        <div class="reparto" role="img" aria-label="${pct(r.reparto.barato)} en horas baratas, ${pct(r.reparto.medio)} en normales y ${pct(r.reparto.caro)} en caras">
+          <span style="flex: ${r.reparto.barato}; background: var(--A)"></span>
+          <span style="flex: ${r.reparto.medio}; background: var(--D)"></span>
+          <span style="flex: ${r.reparto.caro}; background: var(--G)"></span>
+        </div>
+        <p class="reparto-leyenda">
+          <span><i style="background: var(--A)"></i>${pct(r.reparto.barato)} baratas (A–B)</span>
+          <span><i style="background: var(--D)"></i>${pct(r.reparto.medio)} normales</span>
+          <span><i style="background: var(--G)"></i>${pct(r.reparto.caro)} caras (F–G)</span>
+        </p>
+      </div>
+      <div class="consumo-bloque">
+        <h3>Cuánto podrías ahorrar</h3>
+        <p>Si cada día hubieras pasado a las horas más baratas lo que gastaste en tus 4 horas más caras, te habrías ahorrado
+        hasta <strong>${euros(r.ahorro)}</strong>${r.coste ? ` (un ${numero((r.ahorro / r.coste) * 100, 0)} % de la energía)` : ''}.</p>
+      </div>
+    </div>
+    <h3 class="consumo-subtitulo">Tu día típico</h3>
+    <p class="seccion-sub">Lo que consumes de media en cada hora, con el color de su precio medio en esos días.</p>
+    <div class="grafico grafico-consumo" id="grafico-consumo"><div class="tooltip" id="tooltip-consumo" role="status" hidden></div></div>
+    <button type="button" class="enlace" id="consumo-otro">Analizar otro archivo</button>`;
+
+  $('consumo-otro').addEventListener('click', () => {
+    estado.consumo = null;
+    $('consumo-resultado').hidden = true;
+    $('subida').hidden = false;
+    $('archivo-consumo').click();
+  });
+  pintarPerfilConsumo(r, dias);
+}
+
+/** Consumo medio por hora de reloj (en tu zona) y su precio medio. */
+function pintarPerfilConsumo(r, dias) {
+  const cont = $('grafico-consumo');
+  const kwhHora = Array(24).fill(0), precioHora = Array(24).fill(0), nHora = Array(24).fill(0);
+  for (const [fecha, horas] of r.porDia) {
+    for (const h of horas) {
+      const tramo = dias[fecha]?.[h.hora - 1];
+      if (!tramo) continue;
+      const reloj24 = horaIni(tramo) % 24;
+      kwhHora[reloj24] += h.kwh;
+      precioHora[reloj24] += h.precio;
+      nHora[reloj24]++;
+    }
+  }
+  const valores = kwhHora.map((k, i) => (nHora[i] ? k / nHora[i] : 0));
+  const preciosMedios = precioHora.map((p, i) => (nHora[i] ? p / nHora[i] : 0));
+  const l = letras(preciosMedios.map((p, i) => (nHora[i] ? p : Math.min(...preciosMedios.filter(Boolean)))));
+
+  const W = Math.max(300, cont.clientWidth);
+  const H = W < 560 ? 200 : 240;
+  const m = { arriba: 24, abajo: 26, izquierda: 38 };
+  const pw = W - m.izquierda, ph = H - m.arriba - m.abajo;
+  const maxV = Math.max(...valores, 0.1);
+  const paso = [0.05, 0.1, 0.2, 0.25, 0.5, 1, 2].find((p) => maxV / p <= 4) ?? 5;
+  const tope = Math.ceil(maxV / paso) * paso;
+  const y = (v) => m.arriba + ph * (1 - v / tope);
+  const base = m.arriba + ph;
+  const hueco = pw / 24, ancho = Math.min(22, hueco - 2);
+  const centro = (i) => m.izquierda + i * hueco + hueco / 2;
+
+  let svg = '';
+  for (let v = 0; v <= tope + 1e-9; v += paso) {
+    svg += `<line class="${v === 0 ? 'base' : 'rejilla'}" x1="${m.izquierda}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/>`;
+    svg += `<text class="eje" x="${m.izquierda - 8}" y="${y(v) + 4}" text-anchor="end">${numero(v, paso >= 1 ? 0 : Number.isInteger(Math.round(paso * 1000) / 100) ? 1 : 2)}</text>`;
+  }
+  svg += `<text class="eje" x="${m.izquierda - 8}" y="${m.arriba - 10}" text-anchor="end">kWh</text>`;
+  valores.forEach((v, i) => {
+    const x = centro(i) - ancho / 2, arriba = y(v), r2 = Math.min(4, ancho / 2, base - arriba);
+    svg += `<path class="barra" data-i="${i}" style="fill: var(--${l[i]})" d="M${x},${base} V${arriba + r2} Q${x},${arriba} ${x + r2},${arriba} H${x + ancho - r2} Q${x + ancho},${arriba} ${x + ancho},${arriba + r2} V${base} Z"/>`;
+  });
+  const cada = hueco < 22 ? 6 : 3;
+  for (let i = 0; i < 24; i += cada) svg += `<text class="eje" x="${centro(i)}" y="${H - 4}" text-anchor="middle">${i} h</text>`;
+  valores.forEach((v, i) => {
+    svg += `<rect class="zona" data-i="${i}" tabindex="0" aria-label="De ${i} a ${i + 1} h: ${numero(v, 2)} kWh de media, letra ${l[i]}" x="${m.izquierda + i * hueco}" y="${m.arriba}" width="${hueco}" height="${ph}"/>`;
+  });
+  cont.querySelector('svg')?.remove();
+  cont.insertAdjacentHTML('afterbegin', `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tu consumo medio por horas">${svg}</svg>`);
+
+  const tooltip = $('tooltip-consumo');
+  const mostrar = (i) => {
+    cont.querySelectorAll('.barra.activa').forEach((b) => b.classList.remove('activa'));
+    cont.querySelector(`.barra[data-i="${i}"]`).classList.add('activa');
+    const fuerte = document.createElement('strong');
+    fuerte.textContent = `${numero(valores[i], 2)} kWh de media`;
+    const detalle = document.createElement('span');
+    detalle.textContent = `De ${reloj(i)} a ${reloj(i + 1)} · ${cts(preciosMedios[i])} cts/kWh`;
+    const datos = document.createElement('div');
+    datos.append(fuerte, detalle);
+    tooltip.replaceChildren(datos);
+    tooltip.style.left = `${Math.min(W - 110, Math.max(110, centro(i)))}px`;
+    tooltip.style.top = `${y(valores[i])}px`;
     tooltip.hidden = false;
   };
   const ocultar = () => {

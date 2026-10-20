@@ -14,6 +14,8 @@ Sin paso de compilación y a coste 0:
 | `functions/api/historico.js` | `GET /api/historico?dias=30`: media, mínimo y máximo de cada día (para comparar) |
 | `functions/api/avisos.js` | `POST`/`DELETE /api/avisos`: alta y baja de las notificaciones push (Cloudflare KV `AVISOS`) |
 | `avisos/` | Worker con cron que cada tarde manda el push cuando salen los precios de mañana |
+| `public/consumo.js` | Lee el CSV de consumo (Datadis o distribuidora) y lo cruza con los precios, todo en el navegador |
+| `public/privacidad.html` | Página de privacidad |
 | `lib/esios.js` | Lectura de Red Eléctrica y caché por día, compartida por las dos APIs |
 | `lib/horario.js` | Convierte cada fila de Red Eléctrica en su instante real (días de 23, 24 y 25 horas) |
 | `test/` | Tests con `node --test` (sin dependencias) |
@@ -30,7 +32,7 @@ Campo `PCB` = Península, Canarias y Baleares, en €/MWh. Los de mañana salen 
 > **PVPC se sigue publicando por horas** (24 precios). Por eso la web trabaja por horas.
 
 **Impuestos:** por defecto los precios se muestran con impuesto eléctrico (5,11269632 %) e IVA (21 %),
-o IGIC (0 %) en Canarias; vigentes desde el 1 de junio de 2026. Están en `IMPUESTO_ELECTRICO` e `IVA` al
+o IGIC (0 %) en Canarias, o IPSI (1 %) en Ceuta y Melilla (que además tienen su propio precio, `CYM`); vigentes desde el 1 de junio de 2026. Están en `IMPUESTO_ELECTRICO` e `IVA` al
 principio de `public/app.js`: si el Gobierno los cambia, se tocan ahí.
 
 ## Uso

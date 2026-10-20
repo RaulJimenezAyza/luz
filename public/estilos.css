@@ -102,6 +102,13 @@ main { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
 @media (prefers-reduced-motion: reduce) { .boton-tema > span { transition: opacity 0.2s; } }
 body { transition: background-color 0.25s, color 0.25s; }
 
+.aviso-conexion {
+  max-width: 1080px; margin: 16px auto 0; padding: 10px 16px; border-radius: 10px;
+  background: var(--D); color: #0d0d0d; font-size: 0.9375rem; font-weight: 600;
+}
+.aviso-conexion[hidden] { display: none; }
+@media (max-width: 1120px) { .aviso-conexion { margin-left: 16px; margin-right: 16px; } }
+
 /* ---------- Primera pantalla ---------- */
 .primera {
   display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 56px; align-items: center;

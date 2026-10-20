@@ -11,7 +11,21 @@
       // Antes de pintar, para que no parpadee: el tema elegido a mano gana al del sistema.
       try { const t = localStorage.getItem('tema'); if (t) document.documentElement.dataset.theme = t; } catch {}
     </script>
+    <link rel="canonical" href="https://luz.reloda.es/" />
     <link rel="icon" href="icono.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Luz barata" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:url" content="https://luz.reloda.es/" />
+    <meta property="og:site_name" content="Luz barata" />
+    <meta property="og:title" content="¿Cuándo está barata la luz?" />
+    <meta property="og:description" content="Cada hora del día con su letra, de la A a la G, como la etiqueta energética. Y la mejor hora para poner la lavadora." />
+    <meta property="og:image" content="https://luz.reloda.es/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Etiqueta energética de la luz, de la A (verde) a la G (roja)" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="preload" href="fuentes/archivo.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="estilos.css" />
@@ -32,6 +46,10 @@
         <button class="boton-tema" id="boton-tema" type="button"></button>
       </div>
     </header>
+
+    <p class="aviso-conexion" id="aviso-conexion" role="status" hidden>
+      Sin conexión: ves los precios guardados la última vez que abriste la web.
+    </p>
 
     <main>
       <section class="primera" aria-labelledby="titular">

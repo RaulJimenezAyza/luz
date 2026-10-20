@@ -49,6 +49,7 @@ const chip = (letra) =>
 async function iniciar() {
   prepararTema();
   prepararZona();
+  prepararSinConexion();
   const ahora = enMadrid();
   const largo = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   $('fecha-hoy').textContent = largo[0].toUpperCase() + largo.slice(1);
@@ -59,7 +60,9 @@ async function iniciar() {
 
   if (!hoy?.disponible) {
     $('titular').textContent = 'No hemos podido cargar los precios de hoy';
-    $('veredicto-texto').textContent = 'Red Eléctrica no responde ahora mismo. Vuelve a intentarlo en unos minutos.';
+    $('veredicto-texto').textContent = navigator.onLine
+      ? 'Red Eléctrica no responde ahora mismo. Vuelve a intentarlo en unos minutos.'
+      : 'No tienes conexión y no hay precios de hoy guardados. Ábrela cuando vuelvas a tener internet.';
     return;
   }
 
@@ -137,6 +140,15 @@ function prepararZona() {
 // Sube VERSION_API cada vez que cambie el formato de /api/precios: las respuestas se guardan 24 h en la
 // caché del navegador y una antigua con otro formato dejaría la página colgada.
 const VERSION_API = 2;
+
+// ---------- Sin conexión ----------
+function prepararSinConexion() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+  const aviso = () => ($('aviso-conexion').hidden = navigator.onLine);
+  addEventListener('online', aviso);
+  addEventListener('offline', aviso);
+  aviso();
+}
 
 async function cargar(fecha) {
   try {

@@ -80,7 +80,7 @@ main { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 .marca {
-  display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 10px; text-decoration: none; white-space: nowrap;
   font-weight: 800; font-stretch: 110%; font-size: 1.125rem; letter-spacing: -0.01em;
 }
 .marca-logo { width: 28px; height: 24px; }
@@ -334,6 +334,28 @@ input[type='range'] { width: 100%; accent-color: var(--tinta); min-height: 28px;
 .calc-resultado { font-size: 1rem; color: var(--tinta-2); }
 .calc-resultado strong { display: block; color: var(--tinta); font-size: 1.25rem; font-weight: 800; letter-spacing: -0.02em; }
 
+/* ---------- Comparado con otros días ---------- */
+.comparar { padding: 48px 0 56px; border-top: 1px solid var(--linea); }
+.comparar[hidden] { display: none; }
+.comparaciones { font-size: 1.1875rem; line-height: 1.5; color: var(--tinta-2); max-width: 70ch; }
+.comparaciones strong { color: var(--tinta); }
+.deltas { display: flex; flex-wrap: wrap; gap: 10px 12px; margin-top: 14px; }
+.delta {
+  display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px;
+  background: var(--fondo-2); color: var(--tinta); font-size: 1rem; font-weight: 600;
+}
+.delta .icono { width: 18px; height: 18px; }
+.delta.baja .icono { color: var(--A); }
+.delta.sube .icono { color: var(--G); }
+.delta.igual .icono { color: var(--tinta-3); }
+.grafico-historico { margin-top: 28px; min-height: 240px; }
+.grafico .barra.futuro { opacity: 0.45; }
+.leyenda-historico { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 0.875rem; color: var(--tinta-3); }
+.muestra-linea { width: 18px; height: 0; border-top: 1px solid var(--tinta-3); }
+.grafico .linea-media { stroke: var(--tinta-3); stroke-width: 1; shape-rendering: crispEdges; }
+
+.interruptor-compacto { min-height: 40px; font-size: 0.875rem; font-weight: 600; color: var(--tinta); white-space: nowrap; }
+
 /* ---------- Pie ---------- */
 .pie { max-width: 1120px; margin: 0 auto; padding: 28px 20px 48px; border-top: 1px solid var(--linea); color: var(--tinta-3); font-size: 0.875rem; display: grid; gap: 6px; }
 .pie p { max-width: 90ch; }
@@ -374,4 +396,6 @@ input[type='range'] { width: 100%; accent-color: var(--tinta); min-height: 28px;
   .fila-horas { font-size: 0.8125rem; }
   .tabla-precios .cols { grid-template-columns: 1fr; }
   .cabecera-fecha { display: none; }
+  .cabecera-der { gap: 10px; }
+  .marca { font-size: 1rem; gap: 8px; }
 }

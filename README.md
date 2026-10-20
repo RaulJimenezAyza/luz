@@ -11,6 +11,8 @@ Sin paso de compilación y a coste 0:
 | `public/` | Web estática (HTML + JS + CSS) e instalable como PWA |
 | `public/ventana.js` | Lógica pura: franja más barata (ventana deslizante), tramos barato/medio/caro |
 | `functions/api/precios.js` | Cloudflare Pages Function: `GET /api/precios?fecha=AAAA-MM-DD` |
+| `functions/api/historico.js` | `GET /api/historico?dias=30`: media, mínimo y máximo de cada día (para comparar) |
+| `lib/esios.js` | Lectura de Red Eléctrica y caché por día, compartida por las dos APIs |
 | `lib/horario.js` | Convierte cada fila de Red Eléctrica en su instante real (días de 23, 24 y 25 horas) |
 | `test/` | Tests con `node --test` (sin dependencias) |
 
@@ -24,6 +26,10 @@ Campo `PCB` = Península, Canarias y Baleares, en €/MWh. Los de mañana salen 
 
 > El mercado mayorista va por cuartos de hora desde octubre de 2025 (96 precios al día), pero el
 > **PVPC se sigue publicando por horas** (24 precios). Por eso la web trabaja por horas.
+
+**Impuestos:** por defecto los precios se muestran con impuesto eléctrico (5,11269632 %) e IVA (21 %),
+o IGIC (0 %) en Canarias; vigentes desde el 1 de junio de 2026. Están en `IMPUESTO_ELECTRICO` e `IVA` al
+principio de `public/app.js`: si el Gobierno los cambia, se tocan ahí.
 
 ## Uso
 

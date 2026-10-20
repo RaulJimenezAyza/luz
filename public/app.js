@@ -12,6 +12,13 @@ const APARATOS_DE_SERIE = [
   { id: 'coche', nombre: 'Coche eléctrico', icono: 'coche', horas: 6, kwh: 14, despierto: false },
 ];
 const HORARIO_DE_SERIE = { desde: 8, hasta: 23 };
+
+// Impuestos por kWh para pasar del precio de Red Eléctrica a lo que se paga. Vigentes desde el
+// 1 de junio de 2026: impuesto eléctrico 5,11269632 % y luego IVA 21 % (en Canarias, IGIC 0 % para
+// la luz de casa). Revisar si el Gobierno vuelve a rebajarlos. No incluye la potencia contratada ni
+// el alquiler del contador, que no dependen de la hora.
+const IMPUESTO_ELECTRICO = 0.0511269632;
+const IVA = { peninsula: 0.21, canarias: 0 };
 const ICONOS_APARATO = new Set(['lavadora', 'lavavajillas', 'secadora', 'horno', 'termo', 'coche', 'enchufe']);
 
 const OSCURAS = new Set(['C', 'D', 'E']); // letras sobre amarillo: texto oscuro
@@ -20,7 +27,9 @@ const ZONAS = { peninsula: 'Europe/Madrid', canarias: 'Atlantic/Canary' };
 const estado = {
   hoy: null, manana: null, diaVisible: 'hoy', zona: zonaInicial(),
   aparatos: leerAparatos(), horario: leerHorario(), editando: false,
+  impuestos: leer('impuestos') ?? true, historico: null,
 };
+const factorImpuestos = () => (estado.impuestos ? (1 + IMPUESTO_ELECTRICO) * (1 + IVA[estado.zona]) : 1);
 const formatos = {};
 const formatoHora = (zona) =>
   (formatos[zona] ??= new Intl.DateTimeFormat('es-ES', { timeZone: ZONAS[zona], hour: '2-digit', hourCycle: 'h23' }));
@@ -68,7 +77,7 @@ const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&
 
 // ---------- Formato ----------
 const numero = (n, dec) => n.toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
-const cts = (precio) => numero(precio * 100, 1); // €/kWh → céntimos
+const cts = (precio) => numero(precio * 100 * factorImpuestos(), 1); // €/kWh → céntimos, con o sin impuestos
 const euros = (n) => `${numero(n, 2)} €`;
 // Hora de reloj de cada tramo en la zona elegida. El fin se cuenta como inicio + 1 para que el día de
 // 25 horas muestre dos veces "2–3 h" (que es lo que pasa) en vez de un raro "2–2 h".
@@ -88,6 +97,7 @@ async function iniciar() {
   prepararTema();
   prepararZona();
   prepararSinConexion();
+  prepararImpuestos();
   const ahora = enMadrid();
   const largo = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
   $('fecha-hoy').textContent = largo[0].toUpperCase() + largo.slice(1);
@@ -110,6 +120,14 @@ async function iniciar() {
   $('calc-kwh').addEventListener('input', pintarCalculadora);
   $('calc-despierto').addEventListener('change', pintarCalculadora);
   prepararAparatos();
+  cargarHistorico();
+  let anchoHistorico = 0;
+  new ResizeObserver(([e]) => {
+    if (estado.historico && Math.round(e.contentRect.width) !== anchoHistorico) {
+      anchoHistorico = Math.round(e.contentRect.width);
+      pintarComparacion();
+    }
+  }).observe($('grafico-historico'));
 
   let ancho = 0;
   new ResizeObserver(([e]) => {
@@ -128,6 +146,7 @@ async function iniciar() {
       estado.manana = await cargar(sumarDia(fecha));
       if (!estado.hoy?.disponible) return;
       prepararPestanas();
+      cargarHistorico();
     }
     if (!estado.manana?.disponible && (hora > 20 || (hora === 20 && minuto >= 15)) && minuto % 5 === 0) {
       estado.manana = await cargar(sumarDia(enMadrid().fecha));
@@ -181,6 +200,24 @@ function prepararZona() {
 // caché del navegador y una antigua con otro formato dejaría la página colgada.
 const VERSION_API = 2;
 
+// ---------- Con o sin impuestos ----------
+function prepararImpuestos() {
+  const casilla = $('con-impuestos');
+  casilla.checked = estado.impuestos;
+  casilla.addEventListener('change', () => {
+    estado.impuestos = casilla.checked;
+    guardar('impuestos', estado.impuestos);
+    if (estado.hoy?.disponible) pintarTodo();
+  });
+}
+
+function pintarNotaImpuestos() {
+  const pct = (n) => numero(n * 100, n * 100 % 1 ? 2 : 0);
+  $('nota-impuestos').textContent = estado.impuestos
+    ? `Precios con impuestos: impuesto eléctrico (${pct(IMPUESTO_ELECTRICO)} %) e ${estado.zona === 'canarias' ? 'IGIC' : 'IVA'} (${pct(IVA[estado.zona])} %). No incluyen la potencia contratada ni el alquiler del contador, que pagas igual a cualquier hora.`
+    : 'Precios sin impuestos, tal como los publica Red Eléctrica. Con impuestos (impuesto eléctrico e IVA) pagas en torno a un 27 % más.';
+}
+
 // ---------- Sin conexión ----------
 function prepararSinConexion() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -215,11 +252,13 @@ function prepararPestanas() {
 }
 
 function pintarTodo() {
+  pintarNotaImpuestos();
   pintarEtiqueta();
   pintarVeredicto();
   pintarDia();
   pintarAparatos();
   pintarCalculadora();
+  if (estado.historico) pintarComparacion();
 }
 
 // ---------- Datos derivados ----------
@@ -331,7 +370,7 @@ function pintarGrafico() {
   const dia = estado[estado.diaVisible];
   if (!dia?.disponible) return;
   const horas = dia.horas;
-  const valores = horas.map((h) => h.precio * 100);
+  const valores = horas.map((h) => h.precio * 100 * factorImpuestos());
   const l = letras(valores);
   const esHoy = estado.diaVisible === 'hoy';
   const actual = esHoy ? indiceAhora() : -1;
@@ -452,9 +491,9 @@ function recomendar(horas, kwh, soloDespierto) {
   const puedeYa = !permitida || permitida.slice(desde, desde + horas).every(Boolean);
   return {
     s, desde, inicio: mejor.inicio, horas, permitida, puedeYa,
-    coste: mejor.media * kwh,
-    costeYa: ya * kwh,
-    ahorro: puedeYa ? (ya - mejor.media) * kwh : 0,
+    coste: mejor.media * kwh * factorImpuestos(),
+    costeYa: ya * kwh * factorImpuestos(),
+    ahorro: puedeYa ? (ya - mejor.media) * kwh * factorImpuestos() : 0,
     ahora: mejor.inicio === desde,
   };
 }
@@ -616,6 +655,153 @@ function pintarCalculadora() {
   $('calc-resultado').innerHTML = r.ahora
     ? `<strong>Ponlo ya</strong>Te costará ${euros(r.coste)}.`
     : `<strong>${ini.dia === 'mañana' ? 'Mañana a' : 'A'} las ${reloj(horaIni(ini))}</strong>${euros(r.coste)}${comparacion}.`;
+}
+
+// ---------- Comparado con otros días ----------
+
+async function cargarHistorico() {
+  try {
+    const r = await fetch('/api/historico?dias=30');
+    const datos = await r.json();
+    estado.historico = Array.isArray(datos?.dias) && datos.dias.length ? datos.dias : null;
+  } catch {
+    estado.historico = null;
+  }
+  pintarComparacion();
+}
+
+/** Días del histórico, más mañana si ya está publicado. Cada uno: { fecha, media, min, max }. */
+function diasComparables() {
+  const dias = [...estado.historico];
+  const m = estado.manana;
+  if (m?.disponible && !dias.some((d) => d.fecha === m.fecha)) {
+    const p = m.horas.map((h) => h.precio);
+    dias.push({ fecha: m.fecha, media: media(p), min: Math.min(...p), max: Math.max(...p) });
+  }
+  return dias;
+}
+
+function pintarComparacion() {
+  const seccion = $('comparar');
+  if (!estado.historico || !estado.hoy?.disponible) {
+    seccion.hidden = true;
+    return;
+  }
+  seccion.hidden = false;
+  const dias = diasComparables();
+  const iHoy = dias.findIndex((d) => d.fecha === estado.hoy.fecha);
+  if (iHoy === -1) {
+    seccion.hidden = true;
+    return;
+  }
+  const hoy = dias[iHoy].media;
+  const anteriores = dias.slice(0, iHoy);
+
+  // "un 8 % menos que ayer": diferencia de hoy respecto a cada referencia.
+  const frase = (referencia, nombre) => {
+    if (referencia === undefined) return '';
+    const dif = (hoy - referencia) / referencia;
+    if (Math.abs(dif) < 0.02) return `<span class="delta igual">${icono('normal')}lo mismo que ${nombre}</span>`;
+    return `<span class="delta ${dif > 0 ? 'sube' : 'baja'}">${icono(dif > 0 ? 'sube' : 'baja')}un ${numero(Math.abs(dif) * 100, 0)} % ${dif > 0 ? 'más' : 'menos'} que ${nombre}</span>`;
+  };
+  const ultimos = (n) => (anteriores.length ? media(anteriores.slice(-n).map((d) => d.media)) : undefined);
+  const partes = [
+    frase(anteriores.at(-1)?.media, 'ayer'),
+    anteriores.length >= 7 ? frase(ultimos(7), 'la última semana') : '',
+    anteriores.length >= 20 ? frase(ultimos(anteriores.length), 'el último mes') : '',
+  ].filter(Boolean);
+  $('comparaciones').innerHTML =
+    `Hoy el kWh cuesta de media <strong>${cts(hoy)} céntimos</strong>${partes.length ? ':' : '.'}` +
+    (partes.length ? `<span class="deltas">${partes.join('')}</span>` : '');
+
+  pintarGraficoHistorico(dias, iHoy);
+}
+
+function pintarGraficoHistorico(dias, iHoy) {
+  const cont = $('grafico-historico');
+  const valores = dias.map((d) => d.media * 100 * factorImpuestos());
+  const l = letras(valores);
+  const W = Math.max(300, cont.clientWidth);
+  const H = W < 560 ? 220 : 260;
+  const m = { arriba: 34, abajo: 30, izquierda: 30 };
+  const pw = W - m.izquierda;
+  const ph = H - m.arriba - m.abajo;
+
+  const maxV = Math.max(...valores);
+  const paso = [2, 5, 10, 20, 50].find((p) => maxV / p <= 4) ?? 100;
+  const tope = Math.ceil(maxV / paso) * paso;
+  const y = (v) => m.arriba + ph * (1 - v / tope);
+  const base = m.arriba + ph;
+  const hueco = pw / dias.length;
+  const ancho = Math.max(3, Math.min(20, hueco - 2));
+  const centro = (i) => m.izquierda + i * hueco + hueco / 2;
+  const fechaCorta = (f) => new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${f}T12:00:00Z`));
+  const fechaLarga = (f) => new Intl.DateTimeFormat('es-ES', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${f}T12:00:00Z`));
+
+  let svg = '';
+  for (let v = 0; v <= tope + 1e-9; v += paso) {
+    svg += `<line class="${v === 0 ? 'base' : 'rejilla'}" x1="${m.izquierda}" x2="${W}" y1="${y(v)}" y2="${y(v)}"/>`;
+    svg += `<text class="eje" x="${m.izquierda - 8}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  // Media de los días anteriores, como referencia.
+  const previos = valores.slice(0, iHoy);
+  if (previos.length) {
+    const yM = y(media(previos));
+    svg += `<line class="linea-media" x1="${m.izquierda}" x2="${W}" y1="${yM}" y2="${yM}"/>`;
+  }
+  $('leyenda-historico').innerHTML = previos.length
+    ? `<span class="muestra-linea"></span>Media del último mes: ${numero(media(previos), 1)} cts/kWh`
+    : '';
+  valores.forEach((v, i) => {
+    const x = centro(i) - ancho / 2, arriba = y(v), r = Math.min(3, ancho / 2, base - arriba);
+    const futuro = i > iHoy ? ' futuro' : '';
+    svg += `<path class="barra${futuro}" data-i="${i}" style="fill: var(--${l[i]})" d="M${x},${base} V${arriba + r} Q${x},${arriba} ${x + r},${arriba} H${x + ancho - r} Q${x + ancho},${arriba} ${x + ancho},${arriba + r} V${base} Z"/>`;
+  });
+  // Etiquetas solo para hoy (y mañana).
+  svg += `<path class="ahora-marca" d="M${centro(iHoy) - 5},${y(valores[iHoy]) - 12} h10 l-5,6 z"/>`;
+  svg += `<text class="ahora-texto" x="${centro(iHoy)}" y="${y(valores[iHoy]) - 17}" text-anchor="middle">Hoy</text>`;
+  if (iHoy + 1 < dias.length) {
+    svg += `<text class="eje" x="${centro(iHoy + 1)}" y="${y(valores[iHoy + 1]) - 8}" text-anchor="middle">Mañana</text>`;
+  }
+  // Fechas cada 7 días contando desde hoy hacia atrás, para que hoy siempre tenga la suya.
+  dias.forEach((d, i) => {
+    if ((iHoy - i) % 7 === 0 && i <= iHoy) svg += `<text class="eje" x="${centro(i)}" y="${H - 6}" text-anchor="middle">${fechaCorta(d.fecha)}</text>`;
+  });
+  dias.forEach((d, i) => {
+    const etiqueta = `${fechaLarga(d.fecha)}: ${numero(valores[i], 1)} céntimos de media`;
+    svg += `<rect class="zona" data-i="${i}" tabindex="0" aria-label="${etiqueta}" x="${m.izquierda + i * hueco}" y="${m.arriba - 20}" width="${hueco}" height="${ph + 20}"/>`;
+  });
+
+  cont.querySelector('svg')?.remove();
+  cont.insertAdjacentHTML('afterbegin', `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Precio medio de la luz de los últimos días">${svg}</svg>`);
+
+  const tooltip = $('tooltip-historico');
+  const mostrar = (i) => {
+    cont.querySelectorAll('.barra.activa').forEach((b) => b.classList.remove('activa'));
+    cont.querySelector(`.barra[data-i="${i}"]`).classList.add('activa');
+    const fuerte = document.createElement('strong');
+    fuerte.textContent = `${numero(valores[i], 1)} cts/kWh de media`;
+    const detalle = document.createElement('span');
+    const f = fechaLarga(dias[i].fecha);
+    detalle.textContent = `${f[0].toUpperCase()}${f.slice(1)} · de ${cts(dias[i].min)} a ${cts(dias[i].max)}`;
+    const datos = document.createElement('div');
+    datos.append(fuerte, detalle);
+    tooltip.replaceChildren(datos);
+    tooltip.style.left = `${Math.min(W - 120, Math.max(120, centro(i)))}px`;
+    tooltip.style.top = `${y(valores[i]) - (i === iHoy ? 24 : 0)}px`;
+    tooltip.hidden = false;
+  };
+  const ocultar = () => {
+    tooltip.hidden = true;
+    cont.querySelectorAll('.barra.activa').forEach((b) => b.classList.remove('activa'));
+  };
+  cont.querySelectorAll('.zona').forEach((z) => {
+    const i = Number(z.dataset.i);
+    z.addEventListener('pointerenter', () => mostrar(i));
+    z.addEventListener('focus', () => mostrar(i));
+    z.addEventListener('pointerleave', ocultar);
+    z.addEventListener('blur', ocultar);
+  });
 }
 
 // ---------- Fechas ----------

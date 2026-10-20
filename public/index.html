@@ -43,6 +43,10 @@
       </a>
       <div class="cabecera-der">
         <p class="cabecera-fecha" id="fecha-hoy"></p>
+        <label class="interruptor interruptor-compacto">
+          <input id="con-impuestos" type="checkbox" checked />
+          <span>Con impuestos</span>
+        </label>
         <button class="boton-tema" id="boton-tema" type="button"></button>
       </div>
     </header>
@@ -132,13 +136,28 @@
           <p class="calc-resultado" id="calc-resultado" aria-live="polite"></p>
         </div>
       </section>
+
+      <section class="comparar" id="comparar" aria-labelledby="titulo-comparar" hidden>
+        <div class="seccion-cab">
+          <div>
+            <h2 id="titulo-comparar">Hoy, comparado con otros días</h2>
+            <p class="seccion-sub">Precio medio de cada día en el último mes. Cada barra lleva el color de su letra frente al resto del mes.</p>
+          </div>
+        </div>
+        <p class="comparaciones" id="comparaciones"></p>
+        <div class="grafico grafico-historico" id="grafico-historico">
+          <div class="tooltip" id="tooltip-historico" role="status" hidden></div>
+        </div>
+        <p class="leyenda-historico" id="leyenda-historico"></p>
+      </section>
     </main>
 
     <footer class="pie">
       <p>
-        Precio del término de energía de la tarifa regulada PVPC 2.0TD (península, Baleares y Canarias), sin IVA ni
-        impuesto eléctrico. Solo te afecta si tienes esta tarifa. Los consumos de los aparatos son aproximados.
+        Precio del término de energía de la tarifa regulada PVPC 2.0TD (península, Baleares y Canarias). Solo te
+        afecta si tienes esta tarifa. Los consumos de los aparatos son aproximados.
       </p>
+      <p id="nota-impuestos"></p>
       <p>Datos de <a href="https://www.esios.ree.es/" rel="noopener">Red Eléctrica (ESIOS)</a>. Los precios de mañana se publican hacia las 20:15.</p>
       <div class="zonas" role="group" aria-label="Horas de">
         <span>Horas de</span>

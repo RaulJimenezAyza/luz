@@ -1,20 +1,26 @@
-import { LETRAS, franjaMasBarata, letras, mediaDesde, periodos, tramoDeLetra } from './ventana.js';
+import { LETRAS, dentroDeHorario, franjaMasBarata, letras, mediaDesde, periodos, tramoDeLetra } from './ventana.js';
 import { icono } from './iconos.js';
 
-// Consumos aproximados por uso; solo sirven para dar el coste y el ahorro en euros.
-const APARATOS = [
-  { nombre: 'Lavadora', icono: 'lavadora', horas: 2, kwh: 0.9 },
-  { nombre: 'Lavavajillas', icono: 'lavavajillas', horas: 2, kwh: 1.1 },
-  { nombre: 'Secadora', icono: 'secadora', horas: 2, kwh: 2.5 },
-  { nombre: 'Horno', icono: 'horno', horas: 1, kwh: 1.2 },
-  { nombre: 'Termo eléctrico', icono: 'termo', horas: 2, kwh: 3 },
-  { nombre: 'Coche eléctrico', icono: 'coche', horas: 6, kwh: 14, nota: 'en un enchufe normal' },
+// Aparatos de serie. Consumos aproximados por uso: solo sirven para dar el coste y el ahorro en euros.
+// `despierto`: solo se puede poner cuando estás despierto (hay que estar para ponerlo o recogerlo).
+const APARATOS_DE_SERIE = [
+  { id: 'lavadora', nombre: 'Lavadora', icono: 'lavadora', horas: 2, kwh: 0.9, despierto: true },
+  { id: 'lavavajillas', nombre: 'Lavavajillas', icono: 'lavavajillas', horas: 2, kwh: 1.1, despierto: false },
+  { id: 'secadora', nombre: 'Secadora', icono: 'secadora', horas: 2, kwh: 2.5, despierto: true },
+  { id: 'horno', nombre: 'Horno', icono: 'horno', horas: 1, kwh: 1.2, despierto: true },
+  { id: 'termo', nombre: 'Termo eléctrico', icono: 'termo', horas: 2, kwh: 3, despierto: false },
+  { id: 'coche', nombre: 'Coche eléctrico', icono: 'coche', horas: 6, kwh: 14, despierto: false },
 ];
+const HORARIO_DE_SERIE = { desde: 8, hasta: 23 };
+const ICONOS_APARATO = new Set(['lavadora', 'lavavajillas', 'secadora', 'horno', 'termo', 'coche', 'enchufe']);
 
 const OSCURAS = new Set(['C', 'D', 'E']); // letras sobre amarillo: texto oscuro
 // Las horas se pintan en la hora de la península o de Canarias (una menos); el precio es el mismo.
 const ZONAS = { peninsula: 'Europe/Madrid', canarias: 'Atlantic/Canary' };
-const estado = { hoy: null, manana: null, diaVisible: 'hoy', zona: zonaInicial() };
+const estado = {
+  hoy: null, manana: null, diaVisible: 'hoy', zona: zonaInicial(),
+  aparatos: leerAparatos(), horario: leerHorario(), editando: false,
+};
 const formatos = {};
 const formatoHora = (zona) =>
   (formatos[zona] ??= new Intl.DateTimeFormat('es-ES', { timeZone: ZONAS[zona], hour: '2-digit', hourCycle: 'h23' }));
@@ -27,6 +33,38 @@ function zonaInicial() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone === 'Atlantic/Canary' ? 'canarias' : 'peninsula';
 }
 const $ = (id) => document.getElementById(id);
+
+// ---------- Lo que se guarda en este navegador ----------
+// Tus aparatos y tu horario viven en localStorage: sin cuenta y sin servidor. Si el navegador no deja
+// guardar (modo privado), la web funciona igual con los de serie.
+function leer(clave) {
+  try { return JSON.parse(localStorage.getItem(clave)); } catch { return null; }
+}
+function guardar(clave, valor) {
+  try { localStorage.setItem(clave, JSON.stringify(valor)); } catch {}
+}
+function leerAparatos() {
+  const guardados = leer('aparatos');
+  if (!Array.isArray(guardados)) return structuredClone(APARATOS_DE_SERIE);
+  return guardados
+    .filter((a) => a && typeof a.nombre === 'string')
+    .map((a) => ({
+      id: String(a.id || crypto.randomUUID()),
+      nombre: a.nombre.slice(0, 40),
+      icono: ICONOS_APARATO.has(a.icono) ? a.icono : 'enchufe',
+      horas: Math.min(10, Math.max(1, Math.round(Number(a.horas) || 1))),
+      kwh: Math.min(50, Math.max(0.1, Number(a.kwh) || 1)),
+      despierto: Boolean(a.despierto),
+    }));
+}
+function leerHorario() {
+  const h = leer('horario');
+  const valida = (n) => Number.isInteger(n) && n >= 0 && n <= 24;
+  return h && valida(h.desde) && valida(h.hasta) ? { desde: h.desde, hasta: h.hasta } : { ...HORARIO_DE_SERIE };
+}
+
+/** Texto del usuario dentro de HTML. */
+const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 // ---------- Formato ----------
 const numero = (n, dec) => n.toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
@@ -70,6 +108,8 @@ async function iniciar() {
   pintarTodo();
   $('calc-horas').addEventListener('input', pintarCalculadora);
   $('calc-kwh').addEventListener('input', pintarCalculadora);
+  $('calc-despierto').addEventListener('change', pintarCalculadora);
+  prepararAparatos();
 
   let ancho = 0;
   new ResizeObserver(([e]) => {
@@ -395,22 +435,34 @@ function pintarTabla(horas, l) {
 
 // ---------- Aparatos ----------
 
-/** Mejor momento desde ahora para algo que tarda `horas` y gasta `kwh`. */
-function recomendar(horas, kwh) {
+/**
+ * Mejor momento desde ahora para algo que tarda `horas` y gasta `kwh`. Con `soloDespierto`, la franja
+ * entera tiene que caer en tu horario. Sin franja posible devuelve { motivo: 'datos' | 'horario' }.
+ */
+function recomendar(horas, kwh, soloDespierto) {
   const s = serie();
   const precios = s.map((h) => h.precio);
   const desde = indiceAhora();
-  const mejor = franjaMasBarata(precios, horas, desde);
-  if (!mejor) return null;
+  if (desde + horas > s.length) return { motivo: 'datos' };
+  const permitida = soloDespierto ? s.map((h) => dentroDeHorario(horaIni(h) % 24, estado.horario)) : null;
+  const mejor = franjaMasBarata(precios, horas, desde, permitida);
+  if (!mejor) return { motivo: 'horario' };
   const ya = mediaDesde(precios, horas, desde);
+  // Si ahora mismo no se puede (estás durmiendo), no tiene sentido comparar con "ponerlo ya".
+  const puedeYa = !permitida || permitida.slice(desde, desde + horas).every(Boolean);
   return {
-    s, desde, inicio: mejor.inicio, horas,
+    s, desde, inicio: mejor.inicio, horas, permitida, puedeYa,
     coste: mejor.media * kwh,
     costeYa: ya * kwh,
-    ahorro: (ya - mejor.media) * kwh,
+    ahorro: puedeYa ? (ya - mejor.media) * kwh : 0,
     ahora: mejor.inicio === desde,
   };
 }
+
+const textoSinFranja = (r) =>
+  r.motivo === 'datos'
+    ? 'Aún no hay precios para tanto tiempo. Los de mañana salen hacia las 20:15.'
+    : `No cabe dentro de tu horario en lo que queda${estado.manana?.disponible ? ' de hoy y mañana' : ' de hoy. Los precios de mañana salen hacia las 20:15'}.`;
 
 function cuando(r) {
   const ini = r.s[r.inicio], fin = r.s[r.inicio + r.horas - 1];
@@ -425,23 +477,93 @@ function franja(r) {
   const celdas = r.s.slice(r.desde);
   const n = celdas.length;
   const a = r.inicio - r.desde;
-  const html = celdas.map((h, k) =>
-    `<span class="franja-celda${k >= a && k < a + r.horas ? ' dentro' : ''}" style="background: var(--${h.letra})"></span>`).join('');
+  const html = celdas.map((h, k) => {
+    const fuera = r.permitida && !r.permitida[r.desde + k];
+    const clase = k >= a && k < a + r.horas ? ' dentro' : fuera ? ' fuera' : '';
+    return `<span class="franja-celda${clase}" style="--color: var(--${h.letra})"></span>`;
+  }).join('');
   const marco = `<span class="franja-marco" style="left: calc((100% + 2px) * ${a} / ${n} - 4px); width: calc((100% + 2px) * ${r.horas} / ${n} + 6px)"></span>`;
   const hayManana = celdas.some((h) => h.dia === 'mañana');
   return `<div class="franja" aria-hidden="true">${html}${marco}</div>
     <div class="franja-ejes"><span>Ahora</span><span>${hayManana ? 'Mañana, 24 h' : '24 h'}</span></div>`;
 }
 
+function prepararAparatos() {
+  const opciones = (sel) =>
+    Array.from({ length: 25 }, (_, h) => `<option value="${h}"${h === sel ? ' selected' : ''}>${reloj(h)}</option>`).join('');
+  $('horario-desde').innerHTML = opciones(estado.horario.desde);
+  $('horario-hasta').innerHTML = opciones(estado.horario.hasta);
+  const alCambiarHorario = () => {
+    estado.horario = { desde: Number($('horario-desde').value), hasta: Number($('horario-hasta').value) };
+    guardar('horario', estado.horario);
+    pintarAparatos();
+    pintarCalculadora();
+  };
+  $('horario-desde').addEventListener('change', alCambiarHorario);
+  $('horario-hasta').addEventListener('change', alCambiarHorario);
+
+  $('editar-aparatos').addEventListener('click', () => {
+    estado.editando = !estado.editando;
+    pintarAparatos();
+    if (estado.editando) $('lista-aparatos').querySelector('input')?.focus();
+  });
+
+  // En edición, cada cambio se guarda al momento sin repintar (así no se pierde el foco al escribir).
+  const lista = $('lista-aparatos');
+  lista.addEventListener('input', (e) => {
+    const fila = e.target.closest('[data-id]');
+    const aparato = fila && estado.aparatos.find((a) => a.id === fila.dataset.id);
+    if (!aparato) return;
+    const campo = e.target.dataset.campo;
+    if (campo === 'nombre') aparato.nombre = e.target.value.slice(0, 40);
+    if (campo === 'horas') aparato.horas = Number(e.target.value);
+    if (campo === 'kwh' && Number(e.target.value) > 0) aparato.kwh = Math.min(50, Number(e.target.value));
+    if (campo === 'despierto') aparato.despierto = e.target.checked;
+    guardar('aparatos', estado.aparatos);
+  });
+  lista.addEventListener('click', (e) => {
+    const boton = e.target.closest('button[data-accion]');
+    if (!boton) return;
+    const accion = boton.dataset.accion;
+    if (accion === 'borrar') {
+      estado.aparatos = estado.aparatos.filter((a) => a.id !== boton.closest('[data-id]').dataset.id);
+    } else if (accion === 'anadir') {
+      estado.aparatos.push({ id: crypto.randomUUID(), nombre: 'Nuevo aparato', icono: 'enchufe', horas: 1, kwh: 1, despierto: true });
+    } else if (accion === 'serie') {
+      estado.aparatos = structuredClone(APARATOS_DE_SERIE);
+    } else if (accion === 'listo') {
+      estado.editando = false;
+    }
+    guardar('aparatos', estado.aparatos);
+    pintarAparatos();
+    if (accion === 'anadir') {
+      const campos = lista.querySelectorAll('[data-campo="nombre"]');
+      campos[campos.length - 1]?.select();
+    }
+    if (accion === 'listo') $('editar-aparatos').focus();
+  });
+}
+
 function pintarAparatos() {
-  $('lista-aparatos').innerHTML = APARATOS.map((a) => {
-    const r = recomendar(a.horas, a.kwh);
+  const boton = $('editar-aparatos');
+  boton.innerHTML = estado.editando ? `${icono('hecho')}<span>Listo</span>` : `${icono('editar')}<span>Editar aparatos</span>`;
+  boton.setAttribute('aria-pressed', String(estado.editando));
+  $('lista-aparatos').classList.toggle('editando', estado.editando);
+  $('lista-aparatos').innerHTML = estado.editando ? filasEditables() : filasNormales();
+}
+
+function filasNormales() {
+  if (!estado.aparatos.length) {
+    return '<p class="lista-vacia">No tienes aparatos. Pulsa «Editar aparatos» para añadir los tuyos.</p>';
+  }
+  return estado.aparatos.map((a) => {
+    const r = recomendar(a.horas, a.kwh, a.despierto);
     const nombre = `
       <div class="aparato-nombre">${icono(a.icono)}
-        <div><h3>${a.nombre}</h3><p class="aparato-meta">${a.horas} h · unos ${numero(a.kwh, a.kwh % 1 ? 1 : 0)} kWh${a.nota ? `, ${a.nota}` : ''}</p></div>
+        <div><h3>${esc(a.nombre)}</h3><p class="aparato-meta">${a.horas} h · unos ${numero(a.kwh, a.kwh % 1 ? 1 : 0)} kWh · ${a.despierto ? 'cuando estás despierto' : 'a cualquier hora'}</p></div>
       </div>`;
-    if (!r) {
-      return `<div class="aparato" role="listitem">${nombre}<div class="cuando"><p class="cuando-hasta">Faltan datos: los precios de mañana salen hacia las 20:15.</p></div></div>`;
+    if (r.motivo) {
+      return `<div class="aparato" role="listitem">${nombre}<div class="cuando sin-franja"><p class="cuando-hasta">${textoSinFranja(r)}</p></div></div>`;
     }
     const c = cuando(r);
     return `
@@ -451,11 +573,32 @@ function pintarAparatos() {
         <div class="franja-bloque">${franja(r)}</div>
         <div class="coste">
           <p class="coste-precio">${euros(r.coste)}</p>
-          ${r.ahora ? '' : `<p class="coste-ya">${euros(r.costeYa)} si lo pones ya</p>`}
+          ${r.ahora || !r.puedeYa ? '' : `<p class="coste-ya">${euros(r.costeYa)} si lo pones ya</p>`}
           ${!r.ahora && r.ahorro >= 0.01 ? `<p class="coste-ahorro">Ahorras ${euros(r.ahorro)}</p>` : ''}
         </div>
       </div>`;
   }).join('');
+}
+
+function filasEditables() {
+  const horas = (sel) =>
+    Array.from({ length: 10 }, (_, i) => `<option value="${i + 1}"${i + 1 === sel ? ' selected' : ''}>${i + 1} h</option>`).join('');
+  const filas = estado.aparatos.map((a) => `
+    <div class="aparato" role="listitem" data-id="${esc(a.id)}">
+      <div class="aparato-nombre">${icono(a.icono)}
+        <input class="campo-texto" type="text" maxlength="40" value="${esc(a.nombre)}" data-campo="nombre" aria-label="Nombre del aparato" />
+      </div>
+      <label class="campo">Tarda <select data-campo="horas">${horas(a.horas)}</select></label>
+      <label class="campo">Gasta <input class="campo-numero" type="number" min="0.1" max="50" step="0.1" value="${a.kwh}" data-campo="kwh" inputmode="decimal" /> kWh</label>
+      <label class="interruptor"><input type="checkbox" data-campo="despierto"${a.despierto ? ' checked' : ''} /><span>Solo cuando estoy despierto</span></label>
+      <button type="button" class="boton-icono" data-accion="borrar" aria-label="Borrar ${esc(a.nombre)}" title="Borrar">${icono('borrar')}</button>
+    </div>`).join('');
+  return `${filas}
+    <div class="acciones-edicion">
+      <button type="button" class="boton" data-accion="anadir">${icono('mas')}<span>Añadir aparato</span></button>
+      <button type="button" class="boton boton-suave" data-accion="serie">${icono('deshacer')}<span>Volver a los de serie</span></button>
+      <button type="button" class="boton boton-fuerte" data-accion="listo">${icono('hecho')}<span>Listo</span></button>
+    </div>`;
 }
 
 function pintarCalculadora() {
@@ -463,15 +606,16 @@ function pintarCalculadora() {
   const kwh = Number($('calc-kwh').value);
   $('calc-horas-v').textContent = `${horas} ${horas === 1 ? 'hora' : 'horas'}`;
   $('calc-kwh-v').textContent = `${numero(kwh, kwh % 1 ? 1 : 0)} kWh`;
-  const r = recomendar(horas, kwh);
-  if (!r) {
-    $('calc-resultado').textContent = 'Aún no hay precios para una franja tan larga. Los de mañana salen hacia las 20:15.';
+  const r = recomendar(horas, kwh, $('calc-despierto').checked);
+  if (r.motivo) {
+    $('calc-resultado').textContent = textoSinFranja(r);
     return;
   }
   const ini = r.s[r.inicio];
+  const comparacion = r.puedeYa ? ` en vez de ${euros(r.costeYa)}${r.ahorro >= 0.01 ? `: ahorras ${euros(r.ahorro)}` : ''}` : '';
   $('calc-resultado').innerHTML = r.ahora
     ? `<strong>Ponlo ya</strong>Te costará ${euros(r.coste)}.`
-    : `<strong>${ini.dia === 'mañana' ? 'Mañana a' : 'A'} las ${reloj(horaIni(ini))}</strong>${euros(r.coste)} en vez de ${euros(r.costeYa)}${r.ahorro >= 0.01 ? `: ahorras ${euros(r.ahorro)}` : ''}.`;
+    : `<strong>${ini.dia === 'mañana' ? 'Mañana a' : 'A'} las ${reloj(horaIni(ini))}</strong>${euros(r.coste)}${comparacion}.`;
 }
 
 // ---------- Fechas ----------

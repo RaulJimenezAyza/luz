@@ -5,22 +5,33 @@
  * @param {number[]} precios precio de cada hora, en €/kWh, en orden
  * @param {number} duracion horas seguidas que necesita el aparato (entero ≥ 1)
  * @param {number} desde índice de la primera hora en la que se puede empezar
- * @returns {{inicio: number, media: number} | null} null si no cabe la franja
+ * @param {boolean[]} [permitida] si se pasa, la franja entera tiene que caer en horas permitidas
+ * @returns {{inicio: number, media: number} | null} null si no cabe ninguna franja
  */
-export function franjaMasBarata(precios, duracion, desde = 0) {
-  if (duracion < 1 || desde < 0 || desde + duracion > precios.length) return null;
-
-  // Ventana deslizante: se suma la primera franja y luego se mueve hora a hora.
-  let suma = 0;
-  for (let i = desde; i < desde + duracion; i++) suma += precios[i];
-  let mejor = { inicio: desde, suma };
-
-  for (let inicio = desde + 1; inicio + duracion <= precios.length; inicio++) {
-    suma += precios[inicio + duracion - 1] - precios[inicio - 1];
+export function franjaMasBarata(precios, duracion, desde = 0, permitida = null) {
+  if (duracion < 1 || desde < 0) return null;
+  let mejor = null;
+  // Como mucho son 49 horas (hoy y mañana) y 10 de duración: probar cada inicio es de sobra rápido.
+  for (let inicio = desde; inicio + duracion <= precios.length; inicio++) {
+    let suma = 0;
+    let valida = true;
+    for (let i = inicio; i < inicio + duracion; i++) {
+      if (permitida && !permitida[i]) { valida = false; break; }
+      suma += precios[i];
+    }
     // Con empate se queda la más temprana: es la que antes termina.
-    if (suma < mejor.suma - 1e-12) mejor = { inicio, suma };
+    if (valida && (!mejor || suma < mejor.suma - 1e-12)) mejor = { inicio, suma };
   }
-  return { inicio: mejor.inicio, media: mejor.suma / duracion };
+  return mejor && { inicio: mejor.inicio, media: mejor.suma / duracion };
+}
+
+/**
+ * ¿Cae la hora de reloj `hora` (0–23) dentro del horario {desde, hasta}? Admite horarios que cruzan
+ * la medianoche (desde 22 hasta 6) y, si desde === hasta, el día entero.
+ */
+export function dentroDeHorario(hora, { desde, hasta }) {
+  if (desde === hasta) return true;
+  return desde < hasta ? hora >= desde && hora < hasta : hora >= desde || hora < hasta;
 }
 
 /** Precio medio de `duracion` horas empezando en `inicio`, o null si no hay datos. */

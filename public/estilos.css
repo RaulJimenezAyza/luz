@@ -256,7 +256,8 @@ h2 { font-weight: 800; font-size: clamp(1.5rem, 2.6vw, 2rem); letter-spacing: -0
 .cuando-hasta { font-size: 0.875rem; color: var(--tinta-2); }
 
 .franja { position: relative; display: flex; gap: 2px; height: 22px; }
-.franja-celda { flex: 1; border-radius: 2px; opacity: 0.28; }
+.franja-celda { flex: 1; border-radius: 2px; background: var(--color); opacity: 0.28; }
+.franja-celda.fuera { background: var(--linea); opacity: 1; }
 .franja-celda.dentro { opacity: 1; }
 .franja-marco { position: absolute; top: -4px; bottom: -4px; border: 2px solid var(--tinta); border-radius: 6px; pointer-events: none; }
 .franja-ejes { display: flex; justify-content: space-between; margin-top: 7px; font-size: 0.75rem; color: var(--tinta-3); }
@@ -266,8 +267,64 @@ h2 { font-weight: 800; font-size: clamp(1.5rem, 2.6vw, 2rem); letter-spacing: -0
 .coste-ya { font-size: 0.8125rem; color: var(--tinta-3); }
 .coste-ahorro { font-size: 0.875rem; font-weight: 700; color: var(--exito); }
 
+.ajustes { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.horario { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--tinta-2); font-size: 0.9375rem; }
+select, .campo-texto, .campo-numero {
+  min-height: 40px; padding: 0 10px; border: 1.5px solid var(--linea); border-radius: 8px;
+  background: var(--fondo); color: var(--tinta); font: inherit; font-size: 0.9375rem;
+  transition: border-color 0.15s;
+}
+select { padding-right: 6px; cursor: pointer; font-variant-numeric: tabular-nums; }
+select:hover, .campo-texto:hover, .campo-numero:hover { border-color: var(--tinta-3); }
+select:focus-visible, .campo-texto:focus-visible, .campo-numero:focus-visible { outline: 2px solid var(--tinta); outline-offset: 1px; border-color: var(--tinta); }
+
+.boton {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 42px; padding: 0 16px;
+  border: 1.5px solid var(--linea-fuerte); border-radius: 10px; background: transparent; color: var(--tinta);
+  font-weight: 600; font-size: 0.9375rem; cursor: pointer; transition: background-color 0.15s, color 0.15s, transform 0.15s var(--suave);
+}
+.boton:hover { background: var(--fondo-2); }
+.boton:active { transform: scale(0.97); }
+.boton .icono { width: 18px; height: 18px; }
+.boton-suave { border-color: transparent; color: var(--tinta-2); }
+.boton-fuerte { background: var(--tinta); color: var(--fondo); border-color: var(--tinta); }
+.boton-fuerte:hover { background: var(--tinta); opacity: 0.88; }
+.boton[aria-pressed='true'] { background: var(--tinta); color: var(--fondo); }
+.boton-icono {
+  display: inline-grid; place-items: center; width: 42px; height: 42px; border: 0; border-radius: 10px;
+  background: transparent; color: var(--tinta-3); cursor: pointer; transition: background-color 0.15s, color 0.15s;
+}
+.boton-icono:hover { background: var(--fondo-2); color: var(--G); }
+.boton-icono .icono { width: 19px; height: 19px; }
+
+/* Interruptor: un checkbox de verdad con aspecto de interruptor */
+.interruptor { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9375rem; color: var(--tinta-2); min-height: 44px; }
+.interruptor input {
+  appearance: none; flex: none; width: 40px; height: 24px; margin: 0; border-radius: 999px; background: var(--linea);
+  position: relative; cursor: pointer; transition: background-color 0.2s;
+}
+.interruptor input::after {
+  content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
+  background: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25); transition: transform 0.25s var(--suave);
+}
+.interruptor input:checked { background: var(--A); }
+.interruptor input:checked::after { transform: translateX(16px); }
+.interruptor input:focus-visible { outline: 2px solid var(--tinta); outline-offset: 2px; }
+
+/* Lista en modo edición */
+.lista.editando .aparato { grid-template-columns: minmax(220px, 1.4fr) auto auto minmax(200px, 1fr) auto; gap: 16px; padding: 14px 0; }
+.lista.editando .aparato-nombre { gap: 12px; }
+.campo-texto { flex: 1; min-width: 0; width: 100%; font-weight: 600; }
+.campo { display: inline-flex; align-items: center; gap: 8px; color: var(--tinta-2); font-size: 0.9375rem; white-space: nowrap; }
+.campo-numero { width: 5.5em; }
+.acciones-edicion { display: flex; flex-wrap: wrap; gap: 10px; padding: 18px 0 4px; }
+.acciones-edicion .boton-fuerte { margin-left: auto; }
+.lista-vacia, .sin-franja .cuando-hasta { color: var(--tinta-3); }
+.lista-vacia { padding: 24px 0; }
+.cuando.sin-franja { grid-column: 2 / -1; }
+
 .calculadora {
-  display: grid; grid-template-columns: auto 1fr 1fr minmax(240px, 1.2fr); gap: 28px; align-items: center;
+  display: grid; grid-template-columns: auto 1fr 1fr auto minmax(220px, 1.2fr); gap: 28px; align-items: center;
   margin-top: 28px; padding: 22px 24px; background: var(--fondo-2); border-radius: 14px;
 }
 .calculadora h3 { font-size: 1.0625rem; font-weight: 700; }
@@ -299,6 +356,14 @@ input[type='range'] { width: 100%; accent-color: var(--tinta); min-height: 28px;
   .franja-bloque { grid-area: franja; }
   .coste { grid-area: coste; }
   .calculadora { grid-template-columns: 1fr; gap: 16px; }
+  .lista.editando .aparato { grid-template-columns: 1fr auto; grid-template-areas: 'nombre borrar' 'horas kwh' 'despierto despierto'; gap: 10px 12px; }
+  .lista.editando .aparato-nombre { grid-area: nombre; }
+  .lista.editando .campo:nth-of-type(1) { grid-area: horas; }
+  .lista.editando .campo:nth-of-type(2) { grid-area: kwh; justify-self: end; }
+  .lista.editando .interruptor { grid-area: despierto; }
+  .lista.editando .boton-icono { grid-area: borrar; }
+  .cuando.sin-franja { grid-column: 1 / -1; }
+  .acciones-edicion .boton-fuerte { margin-left: 0; }
 }
 @media (max-width: 560px) {
   main, .cabecera, .pie { padding-left: 16px; padding-right: 16px; }

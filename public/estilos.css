@@ -417,25 +417,58 @@ input[type='range'] { width: 100%; accent-color: var(--tinta); min-height: 28px;
 /* ---------- Pie ---------- */
 .pie {
   max-width: 1120px; margin: 0 auto; padding: 32px 20px 56px; border-top: 1px solid var(--linea);
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px 48px; align-items: start;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px 48px; align-items: start;
 }
 .pie-texto { max-width: 68ch; color: var(--tinta-2); font-size: 0.9375rem; line-height: 1.6; text-wrap: pretty; }
 .pie-texto strong { color: var(--tinta); font-weight: 600; }
 .pie a { color: var(--tinta); }
-@media (max-width: 900px) {
-  .pie { grid-template-columns: 1fr; }
-  .ajustes-pie { justify-items: start; }
-  .opciones { justify-content: flex-start; }
+@media (max-width: 900px) { .pie { grid-template-columns: 1fr; } }
+/* ---------- Ajustes flotantes ---------- */
+body { padding-bottom: 84px; } /* que la pastilla no tape el final de la página */
+.flotante {
+  position: fixed; z-index: 20;
+  right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom));
 }
-.ajustes-pie { display: grid; gap: 12px; justify-items: end; }
-.opciones { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px; color: var(--tinta-3); font-size: 0.875rem; }
-.opciones span { margin-right: 4px; }
-.opciones button {
-  min-height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--linea); background: transparent;
-  color: var(--tinta-2); font-size: 0.875rem; cursor: pointer; transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+.pastilla-ajustes {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px 0 14px;
+  border: 0; border-radius: 999px; background: var(--tinta); color: var(--fondo);
+  font-weight: 600; font-size: 0.9375rem; cursor: pointer;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.45), 0 2px 6px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s var(--suave), box-shadow 0.2s;
 }
-.opciones button:hover { border-color: var(--tinta-3); }
-.opciones button[aria-pressed='true'] { background: var(--tinta); border-color: var(--tinta); color: var(--fondo); }
+.pastilla-ajustes:hover { transform: translateY(-2px); box-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.12); }
+.pastilla-ajustes:active { transform: scale(0.97); }
+.pastilla-ajustes .icono { width: 18px; height: 18px; }
+.pastilla-icono { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(127, 127, 127, 0.25); }
+.pastilla-flecha { display: grid; transition: transform 0.25s var(--suave); opacity: 0.7; }
+.pastilla-ajustes[aria-expanded='true'] .pastilla-flecha { transform: rotate(180deg); }
+
+.panel-ajustes {
+  position: absolute; right: 0; bottom: calc(100% + 12px); width: min(340px, calc(100vw - 32px));
+  padding: 18px; border-radius: 20px; background: var(--fondo); border: 1px solid var(--linea);
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.35), 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform-origin: bottom right; animation: abrirPanel 0.28s var(--suave);
+}
+.panel-ajustes[hidden] { display: none; }
+@keyframes abrirPanel { from { opacity: 0; transform: translateY(8px) scale(0.96); } }
+@media (prefers-reduced-motion: reduce) { .panel-ajustes { animation: none; } .pastilla-ajustes { transition: none; } }
+.panel-cab { display: flex; align-items: center; justify-content: space-between; margin: -4px -6px 8px 0; }
+.panel-cab h2 { font-size: 1.125rem; }
+.grupo-ajuste + .grupo-ajuste { margin-top: 16px; }
+.grupo-titulo { font-size: 0.8125rem; font-weight: 600; color: var(--tinta-3); margin-bottom: 8px; }
+.panel-nota { margin-top: 14px; font-size: 0.8125rem; color: var(--tinta-3); }
+
+.segmentado { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: var(--fondo-2); }
+.segmentado.vertical { grid-template-columns: 1fr; }
+.segmentado button {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 12px;
+  border: 0; border-radius: 9px; background: transparent; color: var(--tinta-2); font-weight: 600; font-size: 0.9375rem;
+  cursor: pointer; transition: background-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.segmentado.vertical button { justify-content: space-between; text-align: left; }
+.segmentado button small { font-weight: 500; font-size: 0.8125rem; color: var(--tinta-3); }
+.segmentado button:hover { color: var(--tinta); }
+.segmentado button[aria-pressed='true'] { background: var(--fondo); color: var(--tinta); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14); }
 
 /* ---------- Pantallas medianas y móviles ---------- */
 @media (max-width: 900px) {

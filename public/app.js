@@ -117,6 +117,7 @@ const chip = (letra) =>
 
 async function iniciar() {
   prepararTema();
+  prepararPanelAjustes();
   prepararZona();
   prepararSinConexion();
   prepararImpuestos();
@@ -208,7 +209,10 @@ function prepararTema() {
 
 function prepararZona() {
   const botones = document.querySelectorAll('.zonas button');
-  const marcar = () => botones.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.zona === estado.zona)));
+  const marcar = () => {
+    botones.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.zona === estado.zona)));
+    pintarResumenAjustes();
+  };
   botones.forEach((b) =>
     b.addEventListener('click', () => {
       estado.zona = b.dataset.zona;
@@ -224,10 +228,50 @@ function prepararZona() {
 // caché del navegador y una antigua con otro formato dejaría la página colgada.
 const VERSION_API = 3;
 
+// ---------- Panel de ajustes flotante ----------
+const NOMBRE_ZONA_CORTO = { peninsula: 'Península', canarias: 'Canarias', ceutamelilla: 'Ceuta y Melilla' };
+
+function pintarResumenAjustes() {
+  $('resumen-ajustes').textContent = `${NOMBRE_ZONA_CORTO[estado.zona]} · ${estado.impuestos ? 'con' : 'sin'} impuestos`;
+}
+
+function prepararPanelAjustes() {
+  const panel = $('panel-ajustes');
+  const boton = $('abrir-ajustes');
+  $('pastilla-icono').innerHTML = icono('ajustes');
+  $('pastilla-flecha').innerHTML = icono('arriba');
+  $('cerrar-ajustes').innerHTML = icono('cerrar');
+
+  // Con teclado, el foco entra en el panel; con el ratón o el dedo, no (así no aparece el recuadro de foco).
+  const abrir = (siONo, conTeclado = false) => {
+    panel.hidden = !siONo;
+    boton.setAttribute('aria-expanded', String(siONo));
+    if (siONo && conTeclado) panel.querySelector('[aria-pressed="true"]')?.focus();
+  };
+  boton.addEventListener('click', (e) => abrir(panel.hidden, e.detail === 0));
+  $('cerrar-ajustes').addEventListener('click', () => {
+    abrir(false);
+    boton.focus();
+  });
+  // Se cierra al tocar fuera o con Esc.
+  document.addEventListener('pointerdown', (e) => {
+    if (!panel.hidden && !$('flotante').contains(e.target)) abrir(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) {
+      abrir(false);
+      boton.focus();
+    }
+  });
+}
+
 // ---------- Con o sin impuestos ----------
 function prepararImpuestos() {
   const botones = document.querySelectorAll('.impuestos button');
-  const marcar = () => botones.forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.impuestos === 'si') === estado.impuestos)));
+  const marcar = () => {
+    botones.forEach((b) => b.setAttribute('aria-pressed', String((b.dataset.impuestos === 'si') === estado.impuestos)));
+    pintarResumenAjustes();
+  };
   botones.forEach((b) =>
     b.addEventListener('click', () => {
       estado.impuestos = b.dataset.impuestos === 'si';

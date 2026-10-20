@@ -186,19 +186,37 @@
         de <a href="https://www.esios.ree.es/" rel="noopener">Red Eléctrica</a>, que publica los de mañana hacia
         las 20:15. <a href="/privacidad">Privacidad</a>: sin cuentas ni cookies.
       </p>
-      <div class="ajustes-pie">
-        <div class="opciones zonas" role="group" aria-labelledby="etiqueta-zona">
-          <span id="etiqueta-zona">Precios y horas de</span>
-          <button type="button" data-zona="peninsula">la península y Baleares</button>
-          <button type="button" data-zona="canarias">Canarias</button>
-          <button type="button" data-zona="ceutamelilla">Ceuta y Melilla</button>
-        </div>
-        <div class="opciones impuestos" role="group" aria-labelledby="etiqueta-impuestos">
-          <span id="etiqueta-impuestos">Precios</span>
-          <button type="button" data-impuestos="si">con impuestos</button>
-          <button type="button" data-impuestos="no">sin impuestos</button>
-        </div>
-      </div>
     </footer>
+
+    <!-- Ajustes siempre a mano: una pastilla abajo a la derecha que abre un panel -->
+    <div class="flotante" id="flotante">
+      <div class="panel-ajustes" id="panel-ajustes" role="dialog" aria-labelledby="titulo-ajustes" hidden>
+        <div class="panel-cab">
+          <h2 id="titulo-ajustes">Ajustes</h2>
+          <button type="button" class="boton-icono" id="cerrar-ajustes" aria-label="Cerrar ajustes"></button>
+        </div>
+        <div class="grupo-ajuste">
+          <p class="grupo-titulo" id="etiqueta-zona">Precios y horas de</p>
+          <div class="segmentado vertical zonas" role="group" aria-labelledby="etiqueta-zona">
+            <button type="button" data-zona="peninsula"><span>Península y Baleares</span></button>
+            <button type="button" data-zona="canarias"><span>Canarias</span><small>una hora menos</small></button>
+            <button type="button" data-zona="ceutamelilla"><span>Ceuta y Melilla</span><small>con IPSI</small></button>
+          </div>
+        </div>
+        <div class="grupo-ajuste">
+          <p class="grupo-titulo" id="etiqueta-impuestos">Precios</p>
+          <div class="segmentado impuestos" role="group" aria-labelledby="etiqueta-impuestos">
+            <button type="button" data-impuestos="si">Con impuestos</button>
+            <button type="button" data-impuestos="no">Sin impuestos</button>
+          </div>
+        </div>
+        <p class="panel-nota">Se guarda en este navegador.</p>
+      </div>
+      <button type="button" class="pastilla-ajustes" id="abrir-ajustes" aria-expanded="false" aria-controls="panel-ajustes">
+        <span class="pastilla-icono" id="pastilla-icono"></span>
+        <span id="resumen-ajustes">Ajustes</span>
+        <span class="pastilla-flecha" id="pastilla-flecha"></span>
+      </button>
+    </div>
   </body>
 </html>

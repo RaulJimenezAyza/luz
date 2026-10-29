@@ -1,3 +1,7 @@
 # El service worker se revisa siempre, para que las actualizaciones lleguen enseguida.
 /sw.js
   Cache-Control: no-cache
+
+# Las copias de luz-reloda.pages.dev no deben salir en Google: la buena es luz.reloda.es.
+https://luz-reloda.pages.dev/*
+  X-Robots-Tag: noindex

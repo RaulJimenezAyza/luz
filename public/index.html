@@ -12,6 +12,34 @@
       try { const t = localStorage.getItem('tema'); if (t) document.documentElement.dataset.theme = t; } catch {}
     </script>
     <link rel="canonical" href="https://luz.reloda.es/" />
+    <script type="application/ld+json">
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          "name": "Luz barata",
+          "url": "https://luz.reloda.es/",
+          "description": "El precio de la luz PVPC hora a hora, con una letra de la A a la G como la etiqueta energética, y la mejor hora para poner cada aparato.",
+          "applicationCategory": "UtilitiesApplication",
+          "operatingSystem": "Web",
+          "inLanguage": "es",
+          "isAccessibleForFree": true,
+          "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            { "@type": "Question", "name": "¿A qué hora es más barata la luz hoy?", "acceptedAnswer": { "@type": "Answer", "text": "Depende del día: en Luz barata tienes cada hora con su letra, de la A (la más barata) a la G (la más cara). Suele ser más barata a mediodía, cuando hay mucha solar, y de madrugada, y más cara a última hora de la tarde." } },
+            { "@type": "Question", "name": "¿Cuándo se publica el precio de la luz de mañana?", "acceptedAnswer": { "@type": "Answer", "text": "Red Eléctrica publica los precios del día siguiente cada tarde, hacia las 20:15." } },
+            { "@type": "Question", "name": "¿Qué es la tarifa PVPC y cómo sé si la tengo?", "acceptedAnswer": { "@type": "Answer", "text": "El PVPC (precio voluntario para el pequeño consumidor, peaje 2.0TD) es la tarifa regulada de la luz, cuyo precio cambia cada hora. Solo la ofrecen las comercializadoras de referencia, como Energía XXI, Curenergía o Comercializadora Regulada. Si en tu factura pone «PVPC», la tienes." } },
+            { "@type": "Question", "name": "¿Por qué el precio de la luz cambia cada hora?", "acceptedAnswer": { "@type": "Answer", "text": "El PVPC sigue al mercado mayorista, que fija un precio para cada hora según cuánta electricidad se pide y con qué se produce. Cuando hay mucho sol o viento baja; cuando hay que tirar de gas, sube." } },
+            { "@type": "Question", "name": "¿Cuánto gasta una lavadora, un lavavajillas o un coche eléctrico?", "acceptedAnswer": { "@type": "Answer", "text": "Aproximadamente: una lavadora, 0,9 kWh por lavado; un lavavajillas, 1,1 kWh; una secadora, 2,5 kWh; el horno, 1,2 kWh por hora; un termo eléctrico, 3 kWh, y un coche eléctrico, unos 14 kWh por cada 100 km." } },
+            { "@type": "Question", "name": "¿Los precios llevan impuestos?", "acceptedAnswer": { "@type": "Answer", "text": "Por defecto sí: el impuesto eléctrico (5,11 %) y el IVA (21 % en la península y Baleares; IGIC 0 % en Canarias e IPSI 1 % en Ceuta y Melilla). No incluyen la potencia contratada ni el alquiler del contador." } }
+          ]
+        }
+      ]
+    </script>
     <link rel="icon" href="icono.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="apple-touch-icon.png" />
     <meta name="apple-mobile-web-app-title" content="Luz barata" />
@@ -177,6 +205,39 @@
         </details>
         <div class="consumo-resultado" id="consumo-resultado" aria-live="polite" hidden></div>
       </section>
+
+      <!-- Texto fijo para quien llega desde Google con una pregunta (va también en el JSON-LD de FAQPage del <head>) -->
+      <section class="preguntas" id="preguntas" aria-labelledby="titulo-preguntas">
+        <div class="seccion-cab">
+          <div>
+            <h2 id="titulo-preguntas">Preguntas frecuentes</h2>
+          </div>
+        </div>
+        <details class="tabla-precios pregunta">
+          <summary>¿A qué hora es más barata la luz hoy?</summary>
+          <p>Depende del día: arriba tienes cada hora con su letra, de la A (la más barata) a la G (la más cara). Suele ser más barata a mediodía, cuando hay mucha solar, y de madrugada, y más cara a última hora de la tarde.</p>
+        </details>
+        <details class="tabla-precios pregunta">
+          <summary>¿Cuándo se publica el precio de la luz de mañana?</summary>
+          <p>Red Eléctrica publica los precios del día siguiente cada tarde, hacia las 20:15. Desde ese momento los ves en la pestaña «Mañana» y en la página del <a href="/manana">precio de la luz mañana</a>.</p>
+        </details>
+        <details class="tabla-precios pregunta">
+          <summary>¿Qué es la tarifa PVPC y cómo sé si la tengo?</summary>
+          <p>El PVPC (precio voluntario para el pequeño consumidor, peaje 2.0TD) es la tarifa regulada de la luz, cuyo precio cambia cada hora. Solo la ofrecen las comercializadoras de referencia, como Energía XXI, Curenergía o Comercializadora Regulada. Si en tu factura pone «PVPC», la tienes; si pagas un precio fijo por kWh, estos precios no te afectan.</p>
+        </details>
+        <details class="tabla-precios pregunta">
+          <summary>¿Por qué el precio de la luz cambia cada hora?</summary>
+          <p>El PVPC sigue al mercado mayorista, que fija un precio para cada hora según cuánta electricidad se pide y con qué se produce. Cuando hay mucho sol o viento baja; cuando hay que tirar de gas, sube.</p>
+        </details>
+        <details class="tabla-precios pregunta">
+          <summary>¿Cuánto gasta una lavadora, un lavavajillas o un coche eléctrico?</summary>
+          <p>Aproximadamente: una lavadora, 0,9 kWh por lavado; un lavavajillas, 1,1 kWh; una secadora, 2,5 kWh; el horno, 1,2 kWh por hora; un termo eléctrico, 3 kWh, y un coche eléctrico, unos 14 kWh por cada 100 km. Mira <a href="/lavadora">a qué hora poner la lavadora</a> o <a href="/coche-electrico">cuándo cargar el coche</a> hoy.</p>
+        </details>
+        <details class="tabla-precios pregunta">
+          <summary>¿Los precios llevan impuestos?</summary>
+          <p>Por defecto sí: el impuesto eléctrico (5,11 %) y el IVA (21 % en la península y Baleares; IGIC 0 % en Canarias e IPSI 1 % en Ceuta y Melilla). Puedes quitarlos en Ajustes. No incluyen la potencia contratada ni el alquiler del contador, que no dependen de la hora.</p>
+        </details>
+      </section>
     </main>
 
     <footer class="pie">
@@ -186,6 +247,10 @@
         de <a href="https://www.esios.ree.es/" rel="noopener">Red Eléctrica</a>, que publica los de mañana hacia
         las 20:15. <a href="/privacidad">Privacidad</a>: sin cuentas ni cookies.
       </p>
+      <nav class="otras-paginas" aria-label="Más en Luz barata">
+        <a href="/manana">Precio de la luz mañana</a> · <a href="/lavadora">¿Cuándo pongo la lavadora?</a> ·
+        <a href="/coche-electrico">¿Cuándo cargo el coche?</a>
+      </nav>
     </footer>
 
     <!-- Ajustes siempre a mano: una pastilla abajo a la derecha que abre un panel -->

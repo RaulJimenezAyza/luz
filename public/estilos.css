@@ -371,6 +371,10 @@ input[type='range'] { width: 100%; accent-color: var(--tinta); min-height: 28px;
 
 /* ---------- Tu consumo real ---------- */
 .consumo { padding: 48px 0 56px; border-top: 1px solid var(--linea); }
+.preguntas { padding: 48px 0 56px; border-top: 1px solid var(--linea); }
+.preguntas .pregunta { margin-top: 0; border-bottom: 1px solid var(--linea); padding: 4px 0; }
+.preguntas .pregunta p { margin: 0 0 14px; max-width: 70ch; color: var(--tinta-2); line-height: 1.6; }
+.preguntas .pregunta a { color: var(--tinta); }
 .subida {
   position: relative; display: grid; justify-items: center; gap: 6px; padding: 36px 20px; text-align: center;
   border: 2px dashed var(--linea); border-radius: 16px; cursor: pointer; transition: border-color 0.15s, background-color 0.15s;
@@ -413,6 +417,16 @@ input[type='range'] { width: 100%; accent-color: var(--tinta); min-height: 28px;
 .lectura .lectura-entrada { margin-top: 20px; font-size: 1.25rem; line-height: 1.5; color: var(--tinta); }
 .lectura .lectura-fecha { margin-top: 48px; font-size: 0.875rem; color: var(--tinta-3); }
 .cabecera > .boton { text-decoration: none; }
+.lectura .boton { text-decoration: none; }
+/* Páginas fijas (/manana, /lavadora, /coche-electrico): la tabla del día y los enlaces entre ellas */
+.tabla-fija { width: 100%; margin-top: 16px; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.9375rem; }
+.tabla-fija caption { text-align: left; color: var(--tinta-3); font-size: 0.875rem; padding-bottom: 6px; }
+.tabla-fija th, .tabla-fija td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--linea); }
+.tabla-fija th { color: var(--tinta-3); font-weight: 500; }
+.tabla-fija td:nth-child(2), .tabla-fija th:nth-child(2) { text-align: right; }
+.tabla-fija td:last-child, .tabla-fija th:last-child { text-align: center; width: 60px; }
+.otras-paginas { margin-top: 20px; font-size: 0.9375rem; line-height: 1.8; color: var(--tinta-3); }
+.otras-paginas a { color: var(--tinta); font-weight: 600; }
 
 /* ---------- Pie ---------- */
 .pie {

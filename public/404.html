@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Página no encontrada · Luz barata</title>
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
+    <script>
+      try { const t = localStorage.getItem('tema'); if (t) document.documentElement.dataset.theme = t; } catch {}
+    </script>
+    <!-- Rutas absolutas: esta página se sirve en cualquier dirección que no exista, también en /a/b/c -->
+    <link rel="icon" href="/icono.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fuentes/archivo.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="/estilos.css" />
+  </head>
+  <body>
+    <header class="cabecera">
+      <a class="marca" href="/">
+        <svg class="marca-logo" viewBox="0 0 28 24" aria-hidden="true">
+          <path d="M0 1h12l4 3.5-4 3.5H0z" fill="#009640" />
+          <path d="M0 8.5h17l4 3.5-4 3.5H0z" fill="#ffed00" />
+          <path d="M0 16h22l4 3.5-4 3.5H0z" fill="#e2001a" />
+        </svg>
+        Luz barata
+      </a>
+    </header>
+
+    <main class="lectura">
+      <h1>Esta página no existe</h1>
+      <p class="lectura-entrada">Puede que el enlace esté mal escrito o que la página ya no esté.</p>
+      <p><a class="boton" href="/">Ver el precio de la luz de hoy</a></p>
+    </main>
+  </body>
+</html>
